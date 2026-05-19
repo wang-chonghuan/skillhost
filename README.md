@@ -31,18 +31,18 @@ pip install .
 User-level skills are shared across projects.
 
 ```sh
-skillhost user add git@github.com:your-org/company-skills.git
-skillhost user update
-skillhost user link
-skillhost user list
-skillhost user doctor
+skillhost add git@github.com:your-org/company-skills.git
+skillhost update
+skillhost link
+skillhost list
+skillhost doctor
 ```
 
-By default `skillhost user link` links to all supported agents. You can target one agent:
+By default `skillhost link` links to all supported agents. You can target one agent:
 
 ```sh
-skillhost user link --agent codex
-skillhost user unlink --agent claude --dry-run
+skillhost link --agent codex
+skillhost unlink --agent claude --dry-run
 ```
 
 ## Project-level skills

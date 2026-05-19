@@ -97,7 +97,7 @@ def user_add(args: argparse.Namespace) -> int:
     else:
         clone_repo(args.git_repo, dest, args.branch)
         print(f"Added user repo '{repo_name}' at {dest}")
-    print("Run: skillhost user link")
+    print("Run: skillhost link")
     return 0
 
 
@@ -305,44 +305,45 @@ def project_doctor(args: argparse.Namespace) -> int:
     return USER_ERROR if issues else 0
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="skillhost")
-    parser.add_argument("--version", action="version", version=f"skillhost {__version__}")
-    sub = parser.add_subparsers(dest="scope", required=True)
-
-    user = sub.add_parser("user")
-    us = user.add_subparsers(dest="command", required=True)
-
-    p = us.add_parser("add")
+def _add_user_commands(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    p = sub.add_parser("add")
     p.add_argument("git_repo")
     p.add_argument("--name")
     p.add_argument("--branch")
     p.set_defaults(func=user_add)
 
-    p = us.add_parser("update")
+    p = sub.add_parser("update")
     p.add_argument("name", nargs="?")
     p.set_defaults(func=user_update)
 
-    p = us.add_parser("link")
+    p = sub.add_parser("link")
     p.add_argument("--agent", choices=["codex", "claude", "opencode"])
     p.add_argument("--dry-run", action="store_true")
     p.set_defaults(func=user_link)
 
-    p = us.add_parser("unlink")
+    p = sub.add_parser("unlink")
     p.add_argument("--agent", choices=["codex", "claude", "opencode"])
     p.add_argument("--dry-run", action="store_true")
     p.set_defaults(func=user_unlink)
 
-    p = us.add_parser("remove")
+    p = sub.add_parser("remove")
     p.add_argument("name")
     p.add_argument("--force", action="store_true")
     p.set_defaults(func=user_remove)
 
-    us.add_parser("list").set_defaults(func=user_list)
-    us.add_parser("doctor").set_defaults(func=user_doctor)
+    sub.add_parser("list").set_defaults(func=user_list)
+    sub.add_parser("doctor").set_defaults(func=user_doctor)
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="skillhost")
+    parser.add_argument("--version", action="version", version=f"skillhost {__version__}")
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    _add_user_commands(sub)
 
     project = sub.add_parser("project")
-    ps = project.add_subparsers(dest="command", required=True)
+    ps = project.add_subparsers(dest="project_command", required=True)
 
     p = ps.add_parser("add")
     p.add_argument("git_repo")

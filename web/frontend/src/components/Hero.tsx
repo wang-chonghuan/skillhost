@@ -4,8 +4,8 @@ type HeroProps = {
   githubUrl: string;
 };
 
-const heroCode = `$ skillhost user add git@github.com:acme/acme-skills.git
-$ skillhost user link
+const heroCode = `$ skillhost add git@github.com:acme/acme-skills.git
+$ skillhost link
 
 linked codex   ~/.agents/skills/acme-git
 linked claude  ~/.claude/skills/acme-git

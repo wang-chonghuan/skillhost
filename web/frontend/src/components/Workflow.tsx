@@ -5,33 +5,33 @@ const steps = [
     number: '01',
     title: 'Add',
     description: 'Register a Git repository containing one skill or a collection of skills.',
-    code: 'skillhost user add git@github.com:your-org/company-skills.git',
+    code: 'skillhost add git@github.com:your-org/company-skills.git',
   },
   {
     number: '02',
     title: 'Update',
     description: 'Pull the latest changes with fast-forward-only Git updates.',
-    code: 'skillhost user update',
+    code: 'skillhost update',
   },
   {
     number: '03',
     title: 'Link',
     description: 'Create symlinks into user-level or project-level agent directories.',
-    code: 'skillhost user link',
+    code: 'skillhost link',
   },
 ];
 
-const userCommands = `skillhost user add git@github.com:your-org/company-skills.git
-skillhost user update
-skillhost user link`;
+const userCommands = `skillhost add git@github.com:your-org/company-skills.git
+skillhost update
+skillhost link`;
 
 const projectCommands = `cd ~/code/my-project
 skillhost project register my-project --git git@github.com:your-org/my-project.git
 skillhost project add git@github.com:your-org/my-project-skills.git --project my-project
 skillhost project link`;
 
-const removeCommands = `skillhost user unlink
-skillhost user remove company-skills
+const removeCommands = `skillhost unlink
+skillhost remove company-skills
 
 skillhost project unlink
 skillhost project remove project-skills --project my-project`;

@@ -60,12 +60,13 @@ class SkillhostFrontendAcceptanceTests(unittest.TestCase):
             "uv tool install skillhost",
             "pipx install skillhost",
             "pip install skillhost",
-            "skillhost user add git@github.com:your-org/company-skills.git",
+            "skillhost add git@github.com:your-org/company-skills.git",
             "skillhost project register my-project --git git@github.com:your-org/my-project.git",
             "skillhost project remove project-skills --project my-project",
         ]
         for text in expected:
             self.assertIn(text, combined)
+        self.assertNotIn("skillhost " + "user ", combined)
 
     def test_sections_and_agent_targets_are_present(self):
         combined = "\n".join(path.read_text(encoding="utf-8") for path in (FRONTEND / "src").rglob("*.tsx"))
