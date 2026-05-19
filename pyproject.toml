@@ -22,6 +22,11 @@ classifiers = [
 ]
 dependencies = []
 
+[project.urls]
+Homepage = "https://skillhost.dev"
+Repository = "https://github.com/skillhost-dev/skillhost"
+Issues = "https://github.com/skillhost-dev/skillhost/issues"
+
 [project.scripts]
 skillhost = "skillhost.cli:main"
 
