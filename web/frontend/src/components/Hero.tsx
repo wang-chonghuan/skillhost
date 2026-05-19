@@ -1,51 +1,60 @@
-import { CodeBlock } from './CodeBlock';
+import { SkillFlowIllustration } from './SkillFlowIllustration';
 
 type HeroProps = {
   githubUrl: string;
 };
 
-const heroCode = `$ skillhost add git@github.com:acme/acme-skills.git
-$ skillhost link
-
-linked codex   ~/.agents/skills/acme-git
-linked claude  ~/.claude/skills/acme-git
-linked opencode ~/.config/opencode/skills/acme-git`;
+const painPoints = [
+  'Manual copying creates drift.',
+  'Global skills should be available everywhere.',
+  'Project skills should stay scoped to the repositories that need them.',
+];
 
 export function Hero({ githubUrl }: HeroProps) {
   return (
     <section id="top" className="relative overflow-hidden px-5 py-20 sm:px-6 sm:py-28 lg:px-8">
-      <div className="absolute left-1/2 top-24 -z-10 h-72 w-72 -translate-x-1/2 rounded-full bg-cyan-400/15 blur-3xl" />
-      <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
+      <div className="absolute left-1/2 top-16 -z-10 h-80 w-80 -translate-x-1/2 rounded-full bg-sky-300/30 blur-3xl" />
+      <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[1.02fr_0.98fr]">
         <div className="text-center lg:text-left">
-          <p className="mx-auto inline-flex rounded-full border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-sm font-medium text-cyan-100 lg:mx-0">
-            Open-source Python CLI
+          <p className="mx-auto inline-flex rounded-full border border-sky-200 bg-white/75 px-4 py-2 text-sm font-semibold text-primary-strong shadow-sm lg:mx-0">
+            Git-native skill distribution for AI coding agents
           </p>
-          <h1 className="mt-7 max-w-4xl text-5xl font-semibold tracking-[-0.055em] text-white sm:text-6xl lg:text-7xl">
-            Agent skills, distributed with Git.
+          <h1 className="text-balance mt-7 max-w-4xl font-display text-5xl font-semibold tracking-[-0.055em] text-ink sm:text-6xl lg:text-7xl">
+            Developers and teams need shared skills across multiple AI coding agents.
           </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-slate-300 lg:mx-0">
-            Skillhost links skills from Git repositories into Codex, Claude Code, and OpenCode. No registry, no server, no account — just Git, symlinks, and safe manifests.
+          <div className="mx-auto mt-7 grid max-w-2xl gap-3 lg:mx-0">
+            {painPoints.map((point) => (
+              <p key={point} className="rounded-2xl border border-sky-100 bg-white/78 px-4 py-3 text-base font-medium text-muted shadow-sm">
+                {point}
+              </p>
+            ))}
+          </div>
+          <p className="mx-auto mt-7 max-w-2xl text-lg font-semibold leading-8 text-ink lg:mx-0">
+            SkillHost keeps skills in Git and links them into each agent’s native skill directory at the user or project level.
+          </p>
+          <p className="mx-auto mt-4 max-w-2xl text-lg leading-8 text-muted lg:mx-0">
+            Distribute, update, and clean up shared skills without copying folders by hand.
           </p>
           <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row lg:justify-start">
             <a
               href="#install"
-              className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-slate-950 shadow-glow transition hover:bg-cyan-100"
+              className="rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white shadow-card transition hover:-translate-y-0.5 hover:bg-orange-600"
             >
-              Install Skillhost
+              Install SkillHost
             </a>
             <a
               href={githubUrl}
-              className="rounded-full border border-white/10 bg-white/[0.04] px-6 py-3 text-sm font-semibold text-white transition hover:border-white/20 hover:bg-white/[0.08]"
+              className="rounded-full border border-sky-200 bg-white/80 px-6 py-3 text-sm font-semibold text-primary-strong shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-skywash"
               rel="noreferrer"
             >
               View on GitHub
             </a>
           </div>
+          <p className="mt-6 text-sm font-medium text-subtle">
+            Git-backed updates · User and project scopes · Native agent directories · Manifest-safe cleanup
+          </p>
         </div>
-        <div className="relative">
-          <div className="absolute -inset-6 -z-10 rounded-[2rem] bg-gradient-to-br from-cyan-400/15 via-violet-500/10 to-transparent blur-2xl" />
-          <CodeBlock title="skillhost" code={heroCode} />
-        </div>
+        <SkillFlowIllustration />
       </div>
     </section>
   );

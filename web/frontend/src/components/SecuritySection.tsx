@@ -1,32 +1,46 @@
-const points = [
-  'Skillhost never executes code from skill repositories.',
-  'Skillhost only clones, updates, discovers SKILL.md files, and creates or removes symlinks.',
-  'Unlink and remove are manifest-driven, so user-owned directories are left alone.',
+const safeguards = [
+  {
+    title: 'No hosted registry',
+    description: 'Skills stay in your Git repositories. SkillHost does not require a server, account, or hosted package index.',
+  },
+  {
+    title: 'No skill execution',
+    description: 'SkillHost manages files and links. It does not run the skills it installs.',
+  },
+  {
+    title: 'Conflict-aware by default',
+    description: 'Existing user-owned skills are not overwritten. Conflicts are reported instead of silently resolved.',
+  },
+  {
+    title: 'Git-backed updates',
+    description: 'Updates use normal repository workflows, so teams keep history, review, ownership, and rollback.',
+  },
+  {
+    title: 'Clean manifest-based unlink',
+    description: 'Unlink uses the manifest to remove only symlinks created by SkillHost.',
+  },
 ];
 
 export function SecuritySection() {
   return (
     <section id="security" className="px-5 py-20 sm:px-6 lg:px-8" aria-labelledby="security-title">
-      <div className="mx-auto max-w-7xl overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-white/[0.06] via-white/[0.035] to-cyan-300/[0.04] p-6 shadow-panel sm:p-10 lg:p-12">
-        <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-cyan-200/80">Security</p>
-            <h2 id="security-title" className="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-              Serious defaults for shared skills.
-            </h2>
-            <p className="mt-5 leading-8 text-slate-400">
-              Skillhost keeps repository contents inspectable and installation reversible. The tool manages links and
-              manifests; it does not run installer hooks from skill repositories.
-            </p>
-          </div>
-          <div className="grid gap-4">
-            {points.map((point) => (
-              <div key={point} className="rounded-2xl border border-white/10 bg-black/25 p-5 text-slate-200">
-                <span className="mr-3 text-cyan-200" aria-hidden="true">◆</span>
-                {point}
-              </div>
-            ))}
-          </div>
+      <div className="mx-auto max-w-7xl rounded-[2rem] border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-skywash p-6 shadow-soft sm:p-10">
+        <div className="max-w-3xl">
+          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-emerald-700">Safety model</p>
+          <h2 id="security-title" className="mt-4 font-display text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
+            Predictable links. Reviewable updates. Safe cleanup.
+          </h2>
+          <p className="mt-5 leading-8 text-muted">
+            SkillHost is intentionally small: Git distributes skills, symlinks install them, and manifests track what can be removed.
+          </p>
+        </div>
+        <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+          {safeguards.map((item) => (
+            <article key={item.title} className="rounded-2xl border border-white bg-white/82 p-5 shadow-sm">
+              <h3 className="font-display font-semibold text-ink">{item.title}</h3>
+              <p className="mt-3 text-sm leading-6 text-muted">{item.description}</p>
+            </article>
+          ))}
         </div>
       </div>
     </section>

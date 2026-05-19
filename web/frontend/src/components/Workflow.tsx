@@ -3,21 +3,33 @@ import { CodeBlock } from './CodeBlock';
 const steps = [
   {
     number: '01',
-    title: 'Add',
-    description: 'Register a Git repository containing one skill or a collection of skills.',
+    title: 'Add a Git repo',
+    description: 'Register a repository containing one skill or a collection of skills.',
     code: 'skillhost add git@github.com:your-org/company-skills.git',
   },
   {
     number: '02',
-    title: 'Update',
-    description: 'Pull the latest changes with fast-forward-only Git updates.',
-    code: 'skillhost update',
+    title: 'Discover SKILL.md files',
+    description: 'SkillHost finds every valid skill layout automatically.',
+    code: 'skillhost list',
   },
   {
     number: '03',
-    title: 'Link',
+    title: 'Link native directories',
     description: 'Create symlinks into user-level or project-level agent directories.',
     code: 'skillhost link',
+  },
+  {
+    number: '04',
+    title: 'Pull updates and relink',
+    description: 'Update from Git and refresh links instead of copying folders again.',
+    code: 'skillhost update && skillhost link',
+  },
+  {
+    number: '05',
+    title: 'Unlink safely',
+    description: 'Remove only manifest-tracked links when skills are no longer needed.',
+    code: 'skillhost unlink',
   },
 ];
 
@@ -42,25 +54,24 @@ export function Workflow() {
       <div className="mx-auto max-w-7xl">
         <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-cyan-200/80">Workflow</p>
-            <h2 id="workflow-title" className="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-              Add, update, link.
+            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-primary-strong">Workflow</p>
+            <h2 id="workflow-title" className="mt-4 font-display text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
+              Add, link, update, clean up.
             </h2>
-            <p className="mt-5 max-w-xl leading-8 text-slate-400">
-              Skillhost keeps distribution in Git and installation in each agent’s native skill directory. Project
-              scopes make repository-local skills explicit without changing the agent workflow.
+            <p className="mt-5 max-w-xl leading-8 text-muted">
+              SkillHost keeps distribution in Git and installation in each agent’s native skill directory. Project scopes make repository-local skills explicit without changing the agent workflow.
             </p>
             <div className="mt-8 grid gap-4">
               {steps.map((step) => (
-                <article key={step.number} className="rounded-2xl border border-white/10 bg-white/[0.035] p-5">
+                <article key={step.number} className="rounded-2xl border border-line bg-white/86 p-5 shadow-sm">
                   <div className="flex items-start gap-4">
-                    <span className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 font-mono text-xs text-cyan-100">
+                    <span className="rounded-full border border-sky-200 bg-skywash px-3 py-1 font-mono text-xs font-semibold text-primary-strong">
                       {step.number}
                     </span>
                     <div>
-                      <h3 className="font-semibold text-white">{step.title}</h3>
-                      <p className="mt-1 text-sm leading-6 text-slate-400">{step.description}</p>
-                      <code className="mt-3 block overflow-x-auto rounded-xl bg-black/35 px-3 py-2 font-mono text-xs text-slate-300">
+                      <h3 className="font-display font-semibold text-ink">{step.title}</h3>
+                      <p className="mt-1 text-sm leading-6 text-muted">{step.description}</p>
+                      <code className="mt-3 block overflow-x-auto rounded-xl bg-slate-50 px-3 py-2 font-mono text-xs text-slate-700">
                         {step.code}
                       </code>
                     </div>

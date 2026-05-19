@@ -9,6 +9,10 @@ def read(path: str) -> str:
     return (FRONTEND / path).read_text(encoding="utf-8")
 
 
+def app_sources() -> str:
+    return "\n".join(path.read_text(encoding="utf-8") for path in (FRONTEND / "src").rglob("*.tsx"))
+
+
 class SkillhostFrontendAcceptanceTests(unittest.TestCase):
     def test_required_files_exist(self):
         required = [
@@ -25,6 +29,8 @@ class SkillhostFrontendAcceptanceTests(unittest.TestCase):
             "src/vite-env.d.ts",
             "src/components/Header.tsx",
             "src/components/Hero.tsx",
+            "src/components/SkillFlowIllustration.tsx",
+            "src/components/ProblemSolutionBento.tsx",
             "src/components/CodeBlock.tsx",
             "src/components/FeatureGrid.tsx",
             "src/components/Workflow.tsx",
@@ -48,12 +54,17 @@ class SkillhostFrontendAcceptanceTests(unittest.TestCase):
         self.assertIn('"@vitejs/plugin-react"', package_json)
         self.assertNotIn('"shadcn', package_json.lower())
 
-    def test_copy_links_and_commands_match_plan(self):
-        combined = "\n".join(path.read_text(encoding="utf-8") for path in (FRONTEND / "src").rglob("*.tsx"))
+    def test_brand_copy_links_and_commands_match_plan_v4(self):
+        combined = app_sources()
         expected = [
-            "Agent skills, distributed with Git.",
-            "Skillhost links skills from Git repositories into Codex, Claude Code, and OpenCode.",
-            "No registry, no server, no account",
+            "SkillHost",
+            "Developers and teams need shared skills across multiple AI coding agents.",
+            "Manual copying creates drift.",
+            "Global skills should be available everywhere.",
+            "Project skills should stay scoped to the repositories that need them.",
+            "SkillHost keeps skills in Git and links them into each agent’s native skill directory at the user or project level.",
+            "Distribute, update, and clean up shared skills without copying folders by hand.",
+            "Git-backed updates · User and project scopes · Native agent directories · Manifest-safe cleanup",
             "https://github.com/skillhost-dev/skillhost",
             "https://pypi.org/project/skillhost/",
             "https://github.com/skillhost-dev/skillhost#readme",
@@ -61,32 +72,40 @@ class SkillhostFrontendAcceptanceTests(unittest.TestCase):
             "pipx install skillhost",
             "pip install skillhost",
             "skillhost add git@github.com:your-org/company-skills.git",
+            "skillhost link",
             "skillhost project register my-project --git git@github.com:your-org/my-project.git",
+            "skillhost project add git@github.com:your-org/my-project-skills.git --project my-project",
             "skillhost project remove project-skills --project my-project",
         ]
         for text in expected:
             self.assertIn(text, combined)
+        self.assertNotIn("Skillhost", combined)
         self.assertNotIn("skillhost " + "user ", combined)
 
-    def test_sections_and_agent_targets_are_present(self):
-        combined = "\n".join(path.read_text(encoding="utf-8") for path in (FRONTEND / "src").rglob("*.tsx"))
+    def test_pain_points_value_props_and_agent_targets_are_present(self):
+        combined = app_sources()
         expected = [
-            "id=\"install\"",
-            "id=\"workflow\"",
-            "id=\"agents\"",
-            "id=\"security\"",
+            "Copy-paste creates drift",
+            "Distribution should be boring",
+            "Updates should not mean recopying",
+            "Global where it belongs",
+            "Scoped when needed",
+            "Cleanup should be safe",
+            "Distribute from Git",
+            "Update without recopying",
+            "Manifest-safe cleanup",
+            "Distribute skills from Git",
+            "Manage user-level skills",
+            "Keep project skills scoped",
+            "Link native agent directories",
+            "Clean up from the manifest",
+            "Add a Git repo",
+            "Discover SKILL.md files",
+            "Pull updates and relink",
             "No hosted registry",
-            "No agent lock-in",
-            "No package resolution",
-            "No semver complexity",
             "No skill execution",
-            "Manifest-safe unlink",
-            "Git-native distribution",
-            "Symlink-based install",
-            "User and project scopes",
-            "Multi-agent support",
-            "Safe conflict policy",
-            "Manifest-tracked cleanup",
+            "Conflict-aware by default",
+            "Git-backed updates",
             "~/.agents/skills",
             ".agents/skills",
             "~/.claude/skills",
@@ -100,18 +119,32 @@ class SkillhostFrontendAcceptanceTests(unittest.TestCase):
         for text in expected:
             self.assertIn(text, combined)
 
-    def test_tailwind_and_accessibility_basics(self):
+    def test_light_mode_design_system_and_accessibility_basics(self):
         styles = read("src/styles.css")
         tailwind = read("tailwind.config.ts")
-        app_sources = "\n".join(path.read_text(encoding="utf-8") for path in (FRONTEND / "src").rglob("*.tsx"))
+        app = read("src/App.tsx")
+        combined = app_sources()
         self.assertIn("@tailwind base;", styles)
         self.assertIn("@tailwind components;", styles)
         self.assertIn("@tailwind utilities;", styles)
+        self.assertIn("color-scheme: light", styles)
+        self.assertIn("#f8fafc", styles.lower())
+        self.assertIn("#0f172a", styles.lower())
         self.assertIn("prefers-reduced-motion", styles)
         self.assertIn("scroll-behavior: smooth", styles)
+        self.assertIn("bg-canvas", app)
+        self.assertIn("text-ink", app)
+        self.assertNotIn("bg-ink text-bright", app)
+        self.assertIn("canvas", tailwind)
+        self.assertIn("skywash", tailwind)
+        self.assertIn("surface", tailwind)
+        self.assertIn("primary", tailwind)
+        self.assertIn("accent", tailwind)
+        self.assertIn("fontFamily", tailwind)
+        self.assertIn("display", tailwind)
         self.assertIn("./src/**/*.{ts,tsx}", tailwind)
-        self.assertIn("aria-label", app_sources)
-        self.assertIn("aria-labelledby", app_sources)
+        self.assertIn("aria-label", combined)
+        self.assertIn("aria-labelledby", combined)
 
 
 if __name__ == "__main__":

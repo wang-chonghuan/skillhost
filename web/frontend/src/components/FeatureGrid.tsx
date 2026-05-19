@@ -1,27 +1,27 @@
 const features = [
   {
-    title: 'Git-native distribution',
-    description: 'Use the Git repositories your team already trusts. Clone, pull, review, and roll back with normal developer workflows.',
+    title: 'Distribute skills from Git',
+    description: 'Keep shared skills in repositories your team already reviews, versions, and trusts.',
   },
   {
-    title: 'Symlink-based install',
-    description: 'Skillhost links discovered skills into each agent’s native skill directory instead of copying or repackaging them.',
+    title: 'Update without recopying',
+    description: 'Pull repository changes and relink instead of chasing stale copies across machines and agents.',
   },
   {
-    title: 'User and project scopes',
-    description: 'Install shared personal skills globally, or link project-specific skills into the current repository.',
+    title: 'Manage user-level skills',
+    description: 'Make everyday skills available across Codex, Claude Code, and OpenCode on the developer’s machine.',
   },
   {
-    title: 'Multi-agent support',
-    description: 'Codex, Claude Code, and OpenCode get their own native targets. No cross-agent hacks.',
+    title: 'Keep project skills scoped',
+    description: 'Attach repository-specific skills to the projects that need them without polluting global skill directories.',
   },
   {
-    title: 'Safe conflict policy',
-    description: 'Existing user-owned skills are never overwritten. Duplicate skill names are reported instead of silently resolved.',
+    title: 'Link native agent directories',
+    description: 'Use each agent’s existing skill locations instead of introducing a hosted registry or custom runtime.',
   },
   {
-    title: 'Manifest-tracked cleanup',
-    description: 'Unlink and remove only touch symlinks created by Skillhost.',
+    title: 'Clean up from the manifest',
+    description: 'Unlink only the symlinks SkillHost created, so cleanup is explicit and safe.',
   },
 ];
 
@@ -30,17 +30,20 @@ export function FeatureGrid() {
     <section className="px-5 py-20 sm:px-6 lg:px-8" aria-labelledby="features-title">
       <div className="mx-auto max-w-7xl">
         <div className="max-w-2xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-cyan-200/80">Core model</p>
-          <h2 id="features-title" className="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-            Small primitives. Predictable behavior.
+          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-primary-strong">Core model</p>
+          <h2 id="features-title" className="mt-4 font-display text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
+            Distribution, management, updates, cleanup.
           </h2>
+          <p className="mt-5 leading-8 text-muted">
+            Small primitives make SkillHost predictable: Git stores the skills, manifests track the links, and agents keep using their native directories.
+          </p>
         </div>
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((feature) => (
-            <article key={feature.title} className="rounded-3xl border border-white/10 bg-white/[0.035] p-6 shadow-panel transition hover:-translate-y-0.5 hover:border-cyan-300/25 hover:bg-white/[0.055]">
-              <div className="mb-5 h-1 w-10 rounded-full bg-gradient-to-r from-cyan-300 to-violet-300" />
-              <h3 className="text-lg font-semibold text-white">{feature.title}</h3>
-              <p className="mt-3 leading-7 text-slate-400">{feature.description}</p>
+            <article key={feature.title} className="rounded-3xl border border-line bg-white/86 p-6 shadow-card transition hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-soft">
+              <div className="mb-5 h-1 w-10 rounded-full bg-gradient-to-r from-primary to-blue" />
+              <h3 className="font-display text-lg font-semibold text-ink">{feature.title}</h3>
+              <p className="mt-3 leading-7 text-muted">{feature.description}</p>
             </article>
           ))}
         </div>
