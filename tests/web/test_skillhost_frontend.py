@@ -58,13 +58,12 @@ class SkillhostFrontendAcceptanceTests(unittest.TestCase):
         combined = app_sources()
         expected = [
             "SkillHost",
-            "Developers and teams need shared skills across multiple AI coding agents.",
+            "Shared skills for every AI agent.",
+            "If you use the same skills across Codex, Claude Code, OpenClaw, and future agents.",
             "Manual copying creates drift.",
-            "Global skills should be available everywhere.",
-            "Project skills should stay scoped to the repositories that need them.",
-            "SkillHost keeps skills in Git and links them into each agent’s native skill directory at the user or project level.",
-            "Distribute, update, and clean up shared skills without copying folders by hand.",
-            "Git-backed updates · User and project scopes · Native agent directories · Manifest-safe cleanup",
+            "Project-specific skills should not leak into every workspace.",
+            "SkillHost keeps skills in Git and links them into each agent’s native skill directory, either globally for the user or locally for a project.",
+            "Git-backed updates · Global or project-local links · Manifest-safe cleanup",
             "https://github.com/skillhost-dev/skillhost",
             "https://pypi.org/project/skillhost/",
             "https://github.com/skillhost-dev/skillhost#readme",
@@ -80,25 +79,22 @@ class SkillhostFrontendAcceptanceTests(unittest.TestCase):
         for text in expected:
             self.assertIn(text, combined)
         self.assertNotIn("Skillhost", combined)
+        self.assertNotIn("Developers and teams", combined)
         self.assertNotIn("skillhost " + "user ", combined)
 
     def test_pain_points_value_props_and_agent_targets_are_present(self):
         combined = app_sources()
         expected = [
-            "Copy-paste creates drift",
-            "Distribution should be boring",
-            "Updates should not mean recopying",
-            "Global where it belongs",
-            "Scoped when needed",
-            "Cleanup should be safe",
+            "Stop copy drift",
+            "Ship updates once",
+            "Keep scopes clean",
+            "Use native agent folders",
+            "Clean up safely",
             "Distribute from Git",
             "Update without recopying",
             "Manifest-safe cleanup",
-            "Distribute skills from Git",
-            "Manage user-level skills",
-            "Keep project skills scoped",
-            "Link native agent directories",
-            "Clean up from the manifest",
+            "Native agent directories",
+            "Conflict-aware linking",
             "Add a Git repo",
             "Discover SKILL.md files",
             "Pull updates and relink",

@@ -24,10 +24,10 @@ export function InstallSection({ githubUrl, pypiUrl, docsUrl }: InstallSectionPr
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.22em] text-primary-strong">Install</p>
             <h2 id="install-title" className="mt-4 font-display text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
-              Start distributing skills in minutes.
+              Install. Add. Link.
             </h2>
             <p className="mt-5 leading-8 text-muted">
-              Install SkillHost, add a Git repository, then link skills into the native directories your AI coding agents already use.
+              Start with any standard Python installer.
             </p>
             <CodeBlock className="mt-6" title="next steps" code={nextSteps} />
             <div className="mt-8 flex flex-wrap gap-3">

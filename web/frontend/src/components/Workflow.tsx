@@ -56,10 +56,10 @@ export function Workflow() {
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.22em] text-primary-strong">Workflow</p>
             <h2 id="workflow-title" className="mt-4 font-display text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
-              Add, link, update, clean up.
+              Add, link, update.
             </h2>
             <p className="mt-5 max-w-xl leading-8 text-muted">
-              SkillHost keeps distribution in Git and installation in each agent’s native skill directory. Project scopes make repository-local skills explicit without changing the agent workflow.
+              A tiny CLI flow for shared skills across agents.
             </p>
             <div className="mt-8 grid gap-4">
               {steps.map((step) => (

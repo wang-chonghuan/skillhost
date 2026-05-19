@@ -28,10 +28,10 @@ export function SecuritySection() {
         <div className="max-w-3xl">
           <p className="text-sm font-semibold uppercase tracking-[0.22em] text-emerald-700">Safety model</p>
           <h2 id="security-title" className="mt-4 font-display text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
-            Predictable links. Reviewable updates. Safe cleanup.
+            Safe by being small.
           </h2>
           <p className="mt-5 leading-8 text-muted">
-            SkillHost is intentionally small: Git distributes skills, symlinks install them, and manifests track what can be removed.
+            Git distributes. Symlinks install. Manifests clean up.
           </p>
         </div>
         <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-5">

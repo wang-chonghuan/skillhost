@@ -14,7 +14,7 @@ export function AgentSupport() {
             Native directories for each agent.
           </h2>
           <p className="mt-5 leading-8 text-muted">
-            SkillHost does not invent a registry path. It links skills into the directories Codex, Claude Code, and OpenCode already read.
+            SkillHost links into the directories each agent already reads.
           </p>
         </div>
         <div className="mt-10 grid gap-4 md:grid-cols-3">

@@ -65,7 +65,7 @@ function RepoLayoutSection() {
             One skill or many skills.
           </h2>
           <p className="mt-5 leading-8 text-muted">
-            SkillHost discovers skills by looking for SKILL.md. A repository can be a single skill or a collection of skills, so teams can choose the layout that matches ownership and update cadence.
+            One repo can hold one skill or a collection. SkillHost discovers every SKILL.md.
           </p>
         </div>
         <CodeBlock title="supported layouts" code={repoLayouts} />

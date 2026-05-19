@@ -12,8 +12,8 @@ export function Footer({ githubUrl, pypiUrl, docsUrl }: FooterProps) {
       <div className="mx-auto flex max-w-7xl flex-col gap-6 text-sm text-muted md:flex-row md:items-center md:justify-between">
         <div>
           <p className="font-display font-semibold text-ink">SkillHost</p>
-          <p className="mt-2">SkillHost distributes, updates, and manages AI coding skills from Git.</p>
-          <p className="mt-2 text-subtle">Git is the distribution system. Symlinks are the install system.</p>
+          <p className="mt-2">Git-native skills for AI coding agents.</p>
+          <p className="mt-2 text-subtle">Git distributes. Symlinks install.</p>
           <p className="mt-2 text-subtle">© {year} SkillHost.</p>
         </div>
         <nav className="flex gap-5" aria-label="Footer navigation">
