@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { CodeBlock } from './components/CodeBlock';
 import { Header } from './components/Header';
 import { ScenarioCard } from './components/ScenarioCard';
+import readmeText from '../../../README.md?raw';
 
 const GITHUB_URL = 'https://github.com/wang-chonghuan/skillhost';
 const PYPI_URL = 'https://pypi.org/project/skillhost/';
@@ -48,24 +49,12 @@ const projectCommands = `skillhost register --project <project> --git <project-g
 skillhost add <skill-git-repo> --project <project>
 skillhost update --project <project>`;
 
-const repoFormats = `Single skill:
-my-skill/
-  SKILL.md
+const skillFlowText = `Skill flow:
+skill repo -> SkillHost -> Codex ~/.agents/skills
+skill collection repo -> SkillHost -> Claude Code ~/.claude/skills
+skill collection repo -> SkillHost -> teammate Codex ~/.agents/skills
 
-Collection:
-company-skills/
-  skills/
-    git/
-      SKILL.md
-    db/
-      SKILL.md
-
-Flat collection:
-company-skills/
-  git/
-    SKILL.md
-  db/
-    SKILL.md`;
+A skill repo contains one SKILL.md. A skill collection repo contains multiple skill folders, each with its own SKILL.md. SkillHost discovers those skills and links them into the selected agent directories.`;
 
 const safetyNotes = [
   'SkillHost never executes code from skill repositories.',
@@ -74,50 +63,7 @@ const safetyNotes = [
   'Duplicate skill names are reported instead of silently resolved.',
 ];
 
-const DOCS_TEXT = `# SkillHost quick start
-
-Install:
-pipx install skillhost
-uv tool install skillhost
-pip install skillhost
-
-Scenario 1 — many local skills for every agent:
-skillhost add git@github.com:my-org/company-skills.git
-skillhost update
-
-User targets:
-Codex: ~/.agents/skills
-Claude Code: ~/.claude/skills
-OpenCode: ~/.config/opencode/skills
-
-Scenario 2 — team shared skills:
-skillhost add git@github.com:my-org/team-skills.git
-skillhost update
-
-Scenario 3 — project-only skills:
-skillhost register --project my-project --git git@github.com:my-org/my-project.git
-skillhost add git@github.com:my-org/my-project-skills.git --project my-project
-
-Update from the project checkout:
-skillhost update --project my-project
-
-Project targets:
-Codex: .agents/skills
-Claude Code: .claude/skills
-OpenCode: .opencode/skills
-
-User commands:
-${userCommands}
-
-Project commands:
-${projectCommands}
-
-Skill repo formats:
-${repoFormats}
-
-Safety notes:
-- ${safetyNotes.join('\n- ')}
-`;
+const DOCS_TEXT = readmeText;
 
 type Theme = 'light' | 'dark';
 
@@ -235,6 +181,78 @@ function SkillhostDiagram() {
   );
 }
 
+
+function SkillFlowDiagram() {
+  const agentRows = [
+    { y: 72, label: 'Codex', path: '~/.agents/skills', stroke: '#155e75', dot: '#67e8f9' },
+    { y: 132, label: 'Claude Code', path: '~/.claude/skills', stroke: '#155e75', dot: '#67e8f9' },
+    { y: 192, label: 'Teammate Codex', path: '~/.agents/skills', stroke: '#16a34a', dot: '#86efac' },
+  ];
+
+  return (
+    <figure className="overflow-hidden rounded-2xl border border-cyan-200/25 bg-slate-950 p-4 shadow-sm dark:border-cyan-300/10" aria-label="SkillHost skill distribution flow">
+      <svg viewBox="0 0 900 270" className="h-auto w-full" role="img" aria-labelledby="skill-flow-title skill-flow-desc">
+        <title id="skill-flow-title">SkillHost skill distribution flow</title>
+        <desc id="skill-flow-desc">A skill repository or a skill collection repository flows through SkillHost into multiple agent skill directories.</desc>
+        <defs>
+          <linearGradient id="flow-card" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#0f172a" />
+            <stop offset="100%" stopColor="#111827" />
+          </linearGradient>
+          <filter id="flow-glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="1.5" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+
+        <rect x="0" y="0" width="900" height="270" rx="22" fill="#020617" />
+        <text x="58" y="42" fill="#a5f3fc" fontFamily="ui-sans-serif,system-ui" fontSize="13" fontWeight="800" letterSpacing="1.5">REPOS</text>
+        <text x="412" y="42" fill="#f8fafc" fontFamily="ui-sans-serif,system-ui" fontSize="13" fontWeight="800" letterSpacing="1.5">SKILLHOST</text>
+        <text x="636" y="42" fill="#a5f3fc" fontFamily="ui-sans-serif,system-ui" fontSize="13" fontWeight="800" letterSpacing="1.5">AGENT DIRECTORIES</text>
+
+        <g>
+          <rect x="38" y="70" width="220" height="58" rx="16" fill="url(#flow-card)" stroke="#67e8f9" />
+          <text x="148" y="96" textAnchor="middle" fill="#f8fafc" fontFamily="ui-sans-serif,system-ui" fontSize="15" fontWeight="800">skill repo</text>
+          <text x="148" y="116" textAnchor="middle" fill="#a5f3fc" fontFamily="ui-sans-serif,system-ui" fontSize="12">one skill</text>
+
+          <rect x="38" y="158" width="220" height="64" rx="16" fill="url(#flow-card)" stroke="#a78bfa" />
+          <text x="148" y="184" textAnchor="middle" fill="#f8fafc" fontFamily="ui-sans-serif,system-ui" fontSize="15" fontWeight="800">skill collection repo</text>
+          <text x="148" y="204" textAnchor="middle" fill="#c4b5fd" fontFamily="ui-sans-serif,system-ui" fontSize="12">many skills</text>
+        </g>
+
+        <g fill="none" stroke="#f8fafc" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" filter="url(#flow-glow)">
+          <path d="M258 99 C306 99 322 135 360 135" />
+          <path d="M258 190 C306 190 322 135 360 135" />
+        </g>
+
+        <g>
+          <rect x="370" y="88" width="132" height="94" rx="22" fill="#08111f" stroke="#67e8f9" strokeWidth="2" />
+          <text x="436" y="128" textAnchor="middle" fill="#f8fafc" fontFamily="ui-sans-serif,system-ui" fontSize="18" fontWeight="900">SkillHost</text>
+          <text x="436" y="152" textAnchor="middle" fill="#a5f3fc" fontFamily="ui-sans-serif,system-ui" fontSize="12">discover + link</text>
+        </g>
+
+        <g fill="none" stroke="#f8fafc" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" filter="url(#flow-glow)">
+          <path d="M512 118 C560 118 574 72 618 72" />
+          <path d="M512 135 H618" />
+          <path d="M512 152 C560 152 574 192 618 192" />
+        </g>
+
+        {agentRows.map((agent) => (
+          <g key={agent.label}>
+            <rect x="628" y={agent.y - 24} width="230" height="48" rx="15" fill="url(#flow-card)" stroke={agent.stroke} />
+            <circle cx="654" cy={agent.y} r="6" fill={agent.dot} />
+            <text x="674" y={agent.y - 4} fill="#f8fafc" fontFamily="ui-sans-serif,system-ui" fontSize="14" fontWeight="800">{agent.label}</text>
+            <text x="674" y={agent.y + 14} fill="#94a3b8" fontFamily="ui-monospace,SFMono-Regular,Menlo,monospace" fontSize="11">{agent.path}</text>
+          </g>
+        ))}
+      </svg>
+    </figure>
+  );
+}
+
 function QuickDocs() {
   return (
     <section className="rounded-3xl border border-slate-200 bg-white/80 p-6 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/[0.04] sm:p-8" aria-labelledby="quick-docs-title">
@@ -255,12 +273,13 @@ function QuickDocs() {
           <CodeBlock code={projectCommands} />
         </div>
         <div>
-          <h3 className="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Skill repo formats</h3>
-          <CodeBlock code={repoFormats} />
+          <h3 className="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Skill flow</h3>
+          <p className="mb-4 text-sm leading-6 text-slate-800 dark:text-slate-300">Put one skill or a whole collection in Git. SkillHost discovers each SKILL.md and links the skills into the agent directories you choose.</p>
+          <SkillFlowDiagram />
         </div>
         <div>
           <h3 className="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Safety notes</h3>
-          <ul className="grid gap-3 text-sm leading-6 text-slate-600 dark:text-slate-300 sm:grid-cols-2">
+          <ul className="grid gap-3 text-sm leading-6 text-slate-800 dark:text-slate-300 sm:grid-cols-2">
             {safetyNotes.map((note) => (
               <li key={note} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/[0.035]">
                 {note}
@@ -334,7 +353,7 @@ export default function App() {
             <h1 id="hero-title" className="mt-5 max-w-4xl text-4xl font-semibold tracking-[-0.04em] text-slate-950 dark:text-white sm:text-6xl">
               Share skills across your agents.
             </h1>
-            <div className="mt-6 max-w-4xl space-y-4 text-lg leading-8 text-slate-600 dark:text-slate-300">
+            <div className="mt-6 max-w-4xl space-y-4 text-lg leading-8 text-slate-800 dark:text-slate-300">
               <p>SkillHost keeps your AI agent skills easy to share, update, and organize. Use the same skills across agents, teammates, and projects.</p>
             </div>
           </div>

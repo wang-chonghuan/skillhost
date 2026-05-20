@@ -17,7 +17,7 @@ export function ScenarioCard({ title, children, commands, afterTitle, afterComma
       <h2 id={title.toLowerCase().replace(/[^a-z0-9]+/g, '-')} className="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">
         {title}
       </h2>
-      <div className="mt-4 space-y-4 text-base leading-7 text-slate-600 dark:text-slate-300">{children}</div>
+      <div className="mt-4 space-y-4 text-base leading-7 text-slate-800 dark:text-slate-300">{children}</div>
       <CodeBlock className="mt-6" code={commands} />
       {afterTitle && afterCommands ? (
         <>
@@ -30,7 +30,7 @@ export function ScenarioCard({ title, children, commands, afterTitle, afterComma
           {targets.map((target) => (
             <div key={target.label} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/[0.035]">
               <dt className="font-semibold text-slate-950 dark:text-white">{target.label}</dt>
-              <dd className="mt-2 font-mono text-slate-600 dark:text-slate-300">{target.path}</dd>
+              <dd className="mt-2 font-mono text-slate-800 dark:text-slate-300">{target.path}</dd>
             </div>
           ))}
         </dl>

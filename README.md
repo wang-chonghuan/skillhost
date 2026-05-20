@@ -1,8 +1,33 @@
 # SkillHost
 
-SkillHost manages Agent Skills from Git repositories. Git repositories are the source of truth for skill content, symlinks are the install mechanism, and `~/.skillhost/config.json` is the persistent source of truth for registered agents, projects, and skill repositories.
+Website: https://skillhost.dev
+GitHub: https://github.com/wang-chonghuan/skillhost
 
-SkillHost is intentionally small: it does not run code from skill repositories, does not scan your whole disk, and does not overwrite user-owned existing skills.
+SkillHost installs Agent Skills from Git repositories into local agent skill directories by creating safe, manifest-tracked symlinks.
+
+Git is the source of truth. SkillHost clones or pulls skill repos, discovers `SKILL.md` files, and links the discovered skills into agents such as Codex and Claude Code. It does not execute code from skill repositories and does not overwrite unmanaged files.
+
+## Typical path
+
+```sh
+pipx install skillhost
+
+skillhost add git@github.com:org/company-skills.git
+# choose Codex, Claude Code, OpenCode, OpenClaw, Hermes Agent, or All
+
+skillhost update
+skillhost list
+```
+
+Result:
+
+```text
+skill repo            -> SkillHost -> ~/.agents/skills
+skill collection repo -> SkillHost -> ~/.claude/skills
+                                  -> teammate ~/.agents/skills
+```
+
+No `skillhost init` is required. Commands create the needed `~/.skillhost` state on demand.
 
 ## Install
 
@@ -19,274 +44,76 @@ uv tool install .
 pip install .
 ```
 
-SkillHost does not need an initialization step. Regular commands create the default `~/.skillhost` state they need on demand; commands that do not need persistent config can run before `config.json` exists.
-
-## Current command list
-
-```text
-skillhost [-h] [--version]
-  upgrade
-
-  register --project <name> --git <project-git-url>
-  register --agent <name> --user-dir <path> [--project-dir <path>]
-
-  unregister --project <name>
-  unregister --agent <name>
-
-  add <skill-git-repo> [--project <name>] [--name <repo-name>]
-
-  update [repo-name] [--project <name>] [--agent {codex,claude,opencode,openclaw,hermes}] [--all]
-
-  remove <repo-name> [--project <name>]
-
-  relink [repo-name] [--project <name>] [--agent {codex,claude,opencode,openclaw,hermes}] [--all]
-
-  unlink [repo-name] [--project <name>] [--agent {codex,claude,opencode,openclaw,hermes}] [--all]
-
-  clean
-
-  list [--project <name>]
-  projects
-  agents
-  doctor [--project <name>]
-  config
-```
-
-There are no `user`, `project`, `register-project`, `config path`, or `config edit` subcommands. Older flags such as `--dry-run`, `--force`, `--all-projects`, `--all-skills`, `--include`, and `--exclude` are not part of the current CLI.
-
-## Scope model
-
-User scope is the default. These commands operate on user-level skill repositories unless `--project <name>` is provided:
-
-```sh
-skillhost add <repo>
-skillhost update
-skillhost relink
-skillhost unlink <repo-name>
-skillhost list
-skillhost doctor
-skillhost remove <repo-name>
-```
-
-Project scope is selected only with `--project <name>`:
-
-```sh
-skillhost add <repo> --project nsdk
-skillhost update --project nsdk
-skillhost relink --project nsdk
-skillhost unlink --project nsdk --all
-skillhost list --project nsdk
-skillhost doctor --project nsdk
-skillhost remove nsdk-skills --project nsdk
-```
-
-`--all` means all skill repositories in the selected scope. For `update`, `relink`, `list`, and `doctor`, omitting `repo-name` already means all repositories in the selected scope. For `relink`, omitting `repo-name` also opens the target selector in an interactive terminal unless `--agent` is provided. For `unlink`, omitting both `repo-name` and `--all` is refused to avoid accidental bulk unlinking.
-
-## State layout
-
-Default state lives under `~/.skillhost`:
-
-```text
-~/.skillhost/
-  config.json
-  user_repos/
-    <repo-name>/
-  project_repos/
-    <project-name>/
-      <repo-name>/
-```
-
-`skillhost config` prints only the absolute path to `config.json`.
-
-`config.json` stores:
-
-```text
-version
-home
-agents
-user_repos
-projects
-projects.<project>.remotes
-projects.<project>.repos
-repo URLs
-normalized URLs
-local repo paths
-```
-
-Each agent target directory also has a target-local `.skillhost-links.json` manifest. This manifest is separate from `config.json` and is used so `unlink` and `remove` only touch SkillHost-managed symlinks.
-
-## Agent targets
-
-Built-in agents are initialized in config:
-
-```text
-codex    user: ~/.agents/skills                 project: .agents/skills
-claude   user: ~/.claude/skills                 project: .claude/skills
-opencode user: ~/.config/opencode/skills        project: .opencode/skills
-openclaw user: ~/.openclaw/skills               project: —
-hermes   user: ~/.hermes/skills                 project: —
-```
-
-Register another agent target:
-
-```sh
-skillhost register --agent cursor --user-dir ~/.cursor/skills --project-dir .cursor/skills
-skillhost agents
-skillhost unregister --agent cursor
-```
-
-OpenClaw and Hermes Agent are user-level targets only; SkillHost intentionally does not create project-level links for them. Claude Cowork currently exposes personal skills through its UI rather than a documented stable local user skills directory, so SkillHost does not link to Claude Cowork yet.
-
-Agent registration updates config only. It does not link automatically; run `skillhost relink` when you want to refresh links.
-
-## User-level workflow
-
-```sh
-skillhost add git@github.com:org/company-skills.git
-skillhost list
-skillhost update
-skillhost relink
-skillhost unlink company-skills --agent codex
-skillhost clean
-skillhost remove company-skills
-```
-
-`add` clones the skill repository into `~/.skillhost/user_repos/<repo-name>`, records it in `config.json`, discovers skills, and then prompts where to link the added skills: Codex, Claude Code, OpenCode, OpenClaw, Hermes Agent, or All. In non-interactive shells it keeps the safe previous behavior and relinks all enabled user-level agent targets when possible.
-
-Use `--name` when you want the local repo name to differ from the Git URL basename:
-
-```sh
-skillhost add git@github.com:org/company-skills.git --name shared-skills
-```
-
-## Project-level workflow
-
-First register the project remote:
-
-```sh
-skillhost register --project nsdk --git git@github.com:org/nsdk.git
-```
-
-Then run project-scoped commands from inside the matching project checkout when you want project links to be created or removed:
-
-```sh
-cd ~/code/nsdk
-skillhost add git@github.com:org/nsdk-skills.git --project nsdk
-skillhost update --project nsdk
-skillhost relink --project nsdk
-skillhost unlink --project nsdk --all
-skillhost remove nsdk-skills --project nsdk
-```
-
-Project `relink` and project `unlink` validate the current Git repository root and its `origin` remote against the registered project. SkillHost does not search the disk for project checkouts and does not perform cross-project bulk cleanup.
-
-If you add or update a project skill repository outside the matching checkout, the repository is still recorded under `~/.skillhost/project_repos/<project>/<repo-name>`, and SkillHost prints the command to run inside the project checkout.
-
-## Command details
-
-### `skillhost upgrade`
+Upgrade SkillHost itself:
 
 ```sh
 skillhost upgrade
 ```
 
-Updates the installed SkillHost package using the installer that appears to own the current command: `pipx upgrade skillhost` for pipx-managed installs, `uv tool upgrade skillhost` for uv tool installs, and `python -m pip install --upgrade skillhost` as the fallback for ordinary pip or virtualenv installs.
+`upgrade` detects common installers. It uses `pipx upgrade skillhost` for pipx installs, `uv tool upgrade skillhost` for uv tool installs, and falls back to `python -m pip install --upgrade skillhost`.
 
-### `skillhost register`
-
-```sh
-skillhost register --project <name> --git <project-git-url>
-skillhost register --agent <name> --user-dir <path> [--project-dir <path>]
-```
-
-Project registration normalizes and stores the project Git remote and creates `~/.skillhost/project_repos/<name>`. Agent registration stores user and project target directories. `--project` and `--agent` are mutually exclusive.
-
-### `skillhost unregister`
-
-```sh
-skillhost unregister --project <name>
-skillhost unregister --agent <name>
-```
-
-Removes the config entry only. It does not delete user-owned files and does not scan disk for unknown checkouts.
-
-### `skillhost add`
+## Core commands
 
 ```sh
 skillhost add <skill-git-repo> [--project <name>] [--name <repo-name>]
-```
-
-Clones a skill repository into the selected scope and records it in config. Without `--name`, the repo name is derived from the Git URL basename with `.git` stripped. GitHub HTTPS URLs are cloned through SSH automatically, so `https://github.com/org/repo` and `git@github.com:org/repo.git` both work for users with SSH access. If no skills are discovered, `add` leaves config and repo storage unchanged and exits with an error. On success, it prints how many skills were added and suggests `skillhost list`.
-
-After a successful interactive `add`, SkillHost opens a small terminal selector for where to link the newly added skills. Use ↑/↓ to move, Space to select or unselect, and Enter to confirm. Leaving nothing selected defaults to all enabled targets. If the terminal cannot run the selector, SkillHost falls back to a text prompt where you can enter one number, multiple comma-separated numbers such as `1,3`, or `all`/blank for all. Non-interactive `add` defaults to all enabled targets.
-
-### `skillhost update`
-
-```sh
-skillhost update [repo-name] [--project <name>] [--agent {codex,claude,opencode,openclaw,hermes}] [--all]
-```
-
-Before updating, `update` uses the same target selection flow as `add` and `relink` unless `--agent` is provided. It removes existing SkillHost-managed links for the selected repository or repositories only in the selected agent targets, so renamed or deleted skill directories do not leave stale symlinks behind. Then it runs `git pull --ff-only` for one repository or all repositories in the selected scope. It does not merge or rebase. After updating, it relinks the same selected agent targets when possible. Non-interactive `update` defaults to all enabled targets.
-
-### `skillhost remove`
-
-```sh
+skillhost update [repo-name] [--project <name>] [--agent codex|claude|opencode|openclaw|hermes] [--all]
+skillhost relink [repo-name] [--project <name>] [--agent codex|claude|opencode|openclaw|hermes] [--all]
+skillhost unlink [repo-name] [--project <name>] [--agent codex|claude|opencode|openclaw|hermes] [--all]
 skillhost remove <repo-name> [--project <name>]
-```
-
-Unlinks SkillHost-managed symlinks for that repo where safely discoverable, deletes the cloned repo under `~/.skillhost`, and removes the repo entry from config. The repo argument can be the local repo name or a Git URL such as `https://github.com/org/repo` / `git@github.com:org/repo.git`; URLs are resolved to their repo basename. It does not support `--all`.
-
-### `skillhost relink`
-
-```sh
-skillhost relink [repo-name] [--project <name>] [--agent {codex,claude,opencode,openclaw,hermes}] [--all]
-```
-
-Creates or updates SkillHost-managed symlinks for one repo or all repos in the selected scope. Omitting `repo-name` means all registered repos in the selected scope; for example, `skillhost relink` refreshes every user-level repo, and `skillhost relink --project nsdk` refreshes every repo registered under project `nsdk`. Existing unmanaged files or directories are skipped. In an interactive terminal, `relink` uses the same target selector as `add` unless `--agent` is provided; non-interactive `relink` defaults to all enabled targets.
-
-### `skillhost unlink`
-
-```sh
-skillhost unlink [repo-name] [--project <name>] [--agent {codex,claude,opencode,openclaw,hermes}] [--all]
-```
-
-Removes only symlinks recorded in `.skillhost-links.json`. To unlink all repos in a scope, pass `--all` explicitly:
-
-```sh
-skillhost unlink --all
-skillhost unlink --project nsdk --all
-```
-
-### `skillhost clean`
-
-```sh
 skillhost clean
-```
-
-Scans all enabled user-level agent skill directories and removes broken symlinks. If you run it from inside a Git repository, it also scans that repo root's supported project-level agent skill directories, such as `.agents/skills`, `.claude/skills`, and `.opencode/skills`. If a broken symlink or missing destination is recorded in `.skillhost-links.json`, `clean` also removes the stale manifest entry. OpenClaw and Hermes are user-level-only targets, so they are not cleaned as project-level directories.
-
-### `skillhost list`, `projects`, `agents`, `doctor`, `config`
-
-```sh
 skillhost list [--project <name>]
-skillhost projects
-skillhost agents
 skillhost doctor [--project <name>]
+skillhost agents
+skillhost projects
 skillhost config
 ```
 
-`list` shows repos and discovered skills in the selected scope. `projects` shows registered projects and normalized remotes. `agents` shows registered agent user/project target directories. `doctor` checks config, repos, duplicate skill names, targets, manifests, broken symlinks, and missing sources. `config` prints the absolute config path only.
+Useful behavior:
 
-## Supported skill repository layouts
+- `add` clones a skill repo, discovers skills, then asks which agent directories to link into.
+- `update` uses the same target selection flow as `add`, removes stale SkillHost-managed links for the selected targets, runs `git pull --ff-only`, then relinks.
+- `relink` recreates manifest-managed symlinks without pulling.
+- `unlink` removes only SkillHost-managed symlinks recorded in `.skillhost-links.json`.
+- `remove` unlinks, deletes the local clone under `~/.skillhost`, and removes the repo from config.
+- `clean` removes broken SkillHost-managed symlinks and stale manifest entries.
+- `list` shows registered repos and discovered skills.
+- `doctor` checks config, repos, duplicate skill names, targets, manifests, broken links, and missing sources.
+- `config` prints the config file path only.
 
-Single skill repo:
+Use `--all` when a command needs an explicit all-repos operation, especially `unlink --all`.
+
+## Agent targets
+
+Built-in targets:
+
+```text
+codex    user: ~/.agents/skills           project: .agents/skills
+claude   user: ~/.claude/skills           project: .claude/skills
+opencode user: ~/.config/opencode/skills  project: .opencode/skills
+openclaw user: ~/.openclaw/skills         project: —
+hermes   user: ~/.hermes/skills           project: —
+```
+
+Register a custom agent:
+
+```sh
+skillhost register --agent cursor --user-dir ~/.cursor/skills --project-dir .cursor/skills
+skillhost agents
+skillhost relink
+```
+
+Agent registration updates config only. Run `skillhost relink` when you want to create or refresh links.
+
+## Skill repo shapes
+
+A skill repo contains one skill:
 
 ```text
 my-skill/
   SKILL.md
 ```
 
-Collection repo:
+A skill collection repo contains multiple skills:
 
 ```text
 company-skills/
@@ -297,7 +124,7 @@ company-skills/
       SKILL.md
 ```
 
-Flat collection repo:
+Small flat collections are also supported:
 
 ```text
 company-skills/
@@ -307,24 +134,59 @@ company-skills/
     SKILL.md
 ```
 
-Skill discovery is shallow. SkillHost checks root `SKILL.md`, direct children under `skills/`, or direct children under the repo root. It ignores hidden directories and obvious non-skill directories such as `tests`, `docs`, `examples`, `scripts`, `references`, and `assets`.
+Discovery is intentionally shallow. SkillHost checks root `SKILL.md`, direct children under `skills/`, and direct children under the repo root. It ignores hidden directories and obvious non-skill directories such as `tests`, `docs`, `examples`, `scripts`, `references`, and `assets`.
 
-## Git URL normalization
+## Project skills
 
-Common SSH and HTTPS Git URL forms normalize to `host/org/repo`:
+Project skills are scoped to a registered project repository and linked into project-local agent directories.
 
-```text
-git@github.com:org/repo.git      -> github.com/org/repo
-git@github.com:org/repo          -> github.com/org/repo
-https://github.com/org/repo.git  -> github.com/org/repo
-https://github.com/org/repo      -> github.com/org/repo
-ssh://git@github.com/org/repo.git -> github.com/org/repo
+```sh
+skillhost register --project my-project --git git@github.com:org/my-project.git
+cd /path/to/my-project
+skillhost add git@github.com:org/my-project-skills.git --project my-project
+skillhost update --project my-project
 ```
 
-Project matching uses the current Git root plus `git remote get-url origin`, normalized with the same rules.
+Project links go to directories such as:
 
-## Safety rules
+```text
+.agents/skills
+.claude/skills
+.opencode/skills
+```
 
-SkillHost does not execute code from skill repositories. It only clones repositories, pulls with `git pull --ff-only`, reads `SKILL.md` metadata, and creates or removes manifest-managed symlinks.
+SkillHost validates the current Git root and `origin` remote against the registered project. It does not scan your disk for checkouts.
 
-SkillHost never overwrites unmanaged existing targets, never removes user-owned skill directories, and never performs full-disk project discovery or cross-project bulk operations.
+## State and safety
+
+Default state:
+
+```text
+~/.skillhost/
+  config.json
+  user_repos/<repo-name>/
+  project_repos/<project-name>/<repo-name>/
+```
+
+Each agent target directory also gets a local `.skillhost-links.json` manifest. This is how SkillHost knows which symlinks it owns.
+
+Safety rules:
+
+- Does not execute code from skill repositories.
+- Does not overwrite unmanaged existing files or directories.
+- Does not delete user-owned skill directories.
+- Removes only manifest-managed symlinks.
+- Uses `git pull --ff-only` for updates; it does not merge or rebase.
+- Does not perform full-disk project discovery or cross-project bulk cleanup.
+
+## Git URL handling
+
+Common SSH and HTTPS Git URL forms normalize to the same repo identity:
+
+```text
+git@github.com:org/repo.git       -> github.com/org/repo
+git@github.com:org/repo           -> github.com/org/repo
+https://github.com/org/repo.git   -> github.com/org/repo
+https://github.com/org/repo       -> github.com/org/repo
+ssh://git@github.com/org/repo.git -> github.com/org/repo
+```
