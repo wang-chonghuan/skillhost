@@ -87,20 +87,18 @@ Main content layout:
 
 Hero / theme copy:
 Title:
-Agent skills, managed with Git.
+Shared skills for every AI agent.
 
 Subtitle:
-SkillHost installs skills from Git repositories into Codex, Claude Code, and OpenCode using symlinks. Add once, update with Git, and link safely into user-level or project-level skill directories.
+You need the same skills across Codex, Claude Code, OpenCode, and future agents.
+Manual copying creates drift. Project-specific skills should not leak into every workspace.
 
-Primary install command block:
+Skillhost keeps skills in Git and links them into each agent’s native skill directory, either globally for the user or locally for a project.
+
+install command block:
 uv tool install skillhost
-
-Alternative commands:
 pipx install skillhost
 pip install skillhost
-
-Also show:
-skillhost --help
 
 Scenario 1:
 Title:
@@ -110,12 +108,12 @@ Explain:
 Use user-level repositories when the skills should be available across your machine. SkillHost clones the repo once, then links discovered skills into each agent’s native user-level skill directory.
 
 Commands:
-skillhost user add git@github.com:your-org/company-skills.git
-skillhost user link
+skillhost add git@github.com:your-org/company-skills.git
+skillhost link
 
 Then update later:
-skillhost user update
-skillhost user link
+skillhost update
+skillhost link
 
 Brief target explanation:
 Codex: ~/.agents/skills
@@ -130,12 +128,12 @@ Explain:
 Put the team skills in a normal Git repository. Every developer adds the same repo, links it once, then pulls future updates with one command.
 
 Commands:
-skillhost user add git@github.com:your-org/team-skills.git
-skillhost user link
+skillhost add git@github.com:your-org/team-skills.git
+skillhost link
 
 When the team updates skills:
-skillhost user update
-skillhost user link
+skillhost update
+skillhost link
 
 Explain:
 Git remains the source of truth. Reviews, branches, history, and rollback stay in the workflow your team already uses.
@@ -176,13 +174,13 @@ uv tool install skillhost
 pipx install skillhost
 
 User commands:
-skillhost user add <git-repo>
-skillhost user update
-skillhost user link
-skillhost user unlink
-skillhost user remove <name>
-skillhost user list
-skillhost user doctor
+skillhost add <git-repo>
+skillhost update
+skillhost link
+skillhost unlink
+skillhost remove <name>
+skillhost list
+skillhost doctor
 
 Project commands:
 skillhost project register <project> --git <project-git-url>
