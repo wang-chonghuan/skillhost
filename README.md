@@ -143,7 +143,7 @@ skillhost unlink company-skills --agent codex
 skillhost remove company-skills
 ```
 
-`add` clones the skill repository into `~/.skillhost/user_repos/<repo-name>`, records it in `config.json`, discovers skills, and relinks user-level agent targets when possible.
+`add` clones the skill repository into `~/.skillhost/user_repos/<repo-name>`, records it in `config.json`, discovers skills, and then prompts where to link the added skills: Codex, Claude Code, OpenCode, or All. In non-interactive shells it keeps the safe previous behavior and relinks all enabled user-level agent targets when possible.
 
 Use `--name` when you want the local repo name to differ from the Git URL basename:
 
@@ -178,7 +178,7 @@ If you add or update a project skill repository outside the matching checkout, t
 
 ### `skillhost init`
 
-Creates the default `~/.skillhost` layout and `config.json` if they do not already exist.
+Creates the default `~/.skillhost` layout and `config.json` if they do not already exist. It prints a short summary with the SkillHost home path, config path, repo storage paths, and suggested next commands.
 
 ### `skillhost register`
 
@@ -206,13 +206,26 @@ skillhost add <skill-git-repo> [--project <name>] [--name <repo-name>]
 
 Clones a skill repository into the selected scope and records it in config. Without `--name`, the repo name is derived from the Git URL basename with `.git` stripped.
 
+After a successful interactive `add`, SkillHost prompts where to link the newly added skills:
+
+```text
+Link added skills to:
+  1. Codex
+  2. Claude Code
+  3. OpenCode
+  4. All
+Choose targets (comma-separated, default All):
+```
+
+Enter one number, multiple comma-separated numbers such as `1,3`, or `4`/blank for all. Non-interactive `add` defaults to all enabled targets.
+
 ### `skillhost update`
 
 ```sh
 skillhost update [repo-name] [--project <name>] [--agent {codex,claude,opencode}] [--all]
 ```
 
-Runs `git pull --ff-only` for one repository or all repositories in the selected scope. It does not merge or rebase. After updating, it relinks the selected scope when possible.
+Before updating, removes existing SkillHost-managed links for the selected repository or repositories so renamed or deleted skill directories do not leave stale symlinks behind. Then runs `git pull --ff-only` for one repository or all repositories in the selected scope. It does not merge or rebase. After updating, it relinks the selected scope when possible.
 
 ### `skillhost remove`
 

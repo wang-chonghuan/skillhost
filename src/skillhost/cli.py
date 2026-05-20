@@ -15,6 +15,68 @@ from .projects import current_project_context
 AGENT_CHOICES = ["codex", "claude", "opencode"]
 
 
+def _is_interactive() -> bool:
+    return sys.stdin.isatty() and sys.stdout.isatty()
+
+
+def _format_agent_label(agent_name: str) -> str:
+    labels = {
+        "codex": "Codex",
+        "claude": "Claude Code",
+        "opencode": "OpenCode",
+    }
+    return labels.get(agent_name, agent_name)
+
+
+def _prompt_add_agents() -> list[str] | None:
+    print("Link added skills to:")
+    for index, agent_name in enumerate(AGENT_CHOICES, start=1):
+        print(f"  {index}. {_format_agent_label(agent_name)}")
+    print(f"  {len(AGENT_CHOICES) + 1}. All")
+    prompt = "Choose targets (comma-separated, default All): "
+    value = input(prompt).strip().lower()
+    if not value:
+        return None
+    all_tokens = {"all", "a", str(len(AGENT_CHOICES) + 1)}
+    tokens = [part.strip() for part in value.replace(";", ",").split(",") if part.strip()]
+    if not tokens or any(token in all_tokens for token in tokens):
+        return None
+
+    selected: list[str] = []
+    for token in tokens:
+        if token.isdigit():
+            index = int(token)
+            if 1 <= index <= len(AGENT_CHOICES):
+                agent_name = AGENT_CHOICES[index - 1]
+            else:
+                raise SkillhostError(f"Invalid add target choice: {token}")
+        else:
+            aliases = {"claude-code": "claude", "claudecode": "claude", "open-code": "opencode"}
+            agent_name = aliases.get(token, token)
+            if agent_name not in AGENT_CHOICES:
+                raise SkillhostError(f"Invalid add target choice: {token}")
+        if agent_name not in selected:
+            selected.append(agent_name)
+    return selected
+
+
+def _relink_selected_add_targets(scope: str, project: str | None, repo_name: str) -> int:
+    agent_names = _prompt_add_agents() if _is_interactive() else None
+    if agent_names is None:
+        return _relink_selected(scope, project, repo_name, None)
+    failures = 0
+    for agent_name in agent_names:
+        failures |= _relink_selected(scope, project, repo_name, agent_name)
+    return USER_ERROR if failures else 0
+
+
+def _unlink_repo_links(scope: str, project: str | None, repo_name: str, agent_name: str | None) -> int:
+    removed = 0
+    for target_agent_name, target in _target_entries(scope, project, agent_name):
+        removed += unlink_scope({target_agent_name: target}, scope, project=project, repo_name=repo_name)
+    return removed
+
+
 def _selected_scope(project: str | None) -> tuple[str, Path, str | None]:
     if project:
         config.require_project(project)
@@ -121,6 +183,14 @@ def _relink_selected(scope: str, project: str | None, repo_name: str | None, age
 
 def cmd_init(_args: argparse.Namespace) -> int:
     config.ensure_default_config()
+    print("SkillHost initialized.")
+    print(f"Home: {paths.skillhost_home()}")
+    print(f"Config: {paths.config_path()}")
+    print(f"User repos: {paths.user_repos_dir()}")
+    print(f"Project repos: {paths.project_repos_root()}")
+    print("Next steps:")
+    print("  skillhost add <skill-git-repo>")
+    print("  skillhost list")
     return 0
 
 
@@ -166,9 +236,9 @@ def cmd_add(args: argparse.Namespace) -> int:
     config.register_repo(scope, repo_name, args.skill_git_repo, dest, project)
     print(f"Added repo '{repo_name}'.")
     if scope == "user":
-        return _relink_selected(scope, project, repo_name, None)
+        return _relink_selected_add_targets(scope, project, repo_name)
     try:
-        return _relink_selected(scope, project, repo_name, None)
+        return _relink_selected_add_targets(scope, project, repo_name)
     except SkillhostError:
         print(f"Added project skill repo for {project}.")
         print("Run inside the project checkout:")
@@ -183,18 +253,31 @@ def cmd_update(args: argparse.Namespace) -> int:
         if args.repo_name not in names:
             raise SkillhostError(f"Repo not found in selected scope: {args.repo_name}")
         names = [args.repo_name]
+    if scope == "user":
+        for name in names:
+            _unlink_repo_links(scope, project, name, args.agent)
+            pull_ff_only(base_dir / name)
+            print(f"Updated {name}")
+        return _relink_selected(scope, project, args.repo_name, args.agent)
+
+    can_relink = True
+    try:
+        for name in names:
+            _unlink_repo_links(scope, project, name, args.agent)
+    except SkillhostError:
+        can_relink = False
     for name in names:
         pull_ff_only(base_dir / name)
         print(f"Updated {name}")
-    if scope == "user":
-        return _relink_selected(scope, project, args.repo_name, args.agent)
-    try:
-        return _relink_selected(scope, project, args.repo_name, args.agent)
-    except SkillhostError:
-        print("Updated project skill repo(s).")
-        print("Run inside the project checkout:")
-        print(f"  skillhost relink --project {project}")
-        return 0
+    if can_relink:
+        try:
+            return _relink_selected(scope, project, args.repo_name, args.agent)
+        except SkillhostError:
+            pass
+    print("Updated project skill repo(s).")
+    print("Run inside the project checkout:")
+    print(f"  skillhost relink --project {project}")
+    return 0
 
 
 def cmd_remove(args: argparse.Namespace) -> int:

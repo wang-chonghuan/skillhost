@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -71,7 +72,7 @@ def test_help_surface_matches_v7():
     }
 
 
-def test_init_creates_json_config(isolated):
+def test_init_creates_json_config(isolated, capsys):
     assert main(["init"]) == 0
     assert paths.config_path().name == "config.json"
     cfg = config.load_config()
@@ -79,6 +80,11 @@ def test_init_creates_json_config(isolated):
     assert Path(cfg["home"]) == paths.skillhost_home()
     assert "user_repos" in cfg
     assert "projects" in cfg
+    out = capsys.readouterr().out
+    assert "SkillHost initialized." in out
+    assert f"Home: {paths.skillhost_home()}" in out
+    assert f"Config: {paths.config_path()}" in out
+    assert "skillhost add <skill-git-repo>" in out
 
 
 def test_register_and_unregister_project(isolated):
@@ -120,6 +126,56 @@ def test_add_list_relink_unlink_remove_user_scope(isolated):
     assert "repo-user" not in config.load_config()["user_repos"]
 
 
+def test_update_unlinks_old_skill_names_before_relinking(isolated):
+    repo = make_repo(isolated, "repo-rename", "old-skill")
+    assert main(["add", str(repo), "--name", "repo-rename"]) == 0
+    target = isolated / "home" / ".agents" / "skills"
+    assert (target / "old-skill").is_symlink()
+
+    git(["mv", "old-skill", "new-skill"], repo)
+    (repo / "new-skill" / "SKILL.md").write_text("---\nname: new-skill\n---\n", encoding="utf-8")
+    git(["add", "."], repo)
+    git(["commit", "-m", "rename skill"], repo)
+
+    assert main(["update", "repo-rename"]) == 0
+
+    assert not (target / "old-skill").exists()
+    assert not (target / "old-skill").is_symlink()
+    assert (target / "new-skill").is_symlink()
+    manifest = load_manifest(target)
+    assert "old-skill" not in manifest["links"]
+    assert manifest["links"]["new-skill"]["repo"] == "repo-rename"
+
+
+def test_add_interactive_links_selected_agents(isolated, monkeypatch):
+    monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+    monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+    monkeypatch.setattr("builtins.input", lambda _prompt: "1,3")
+    repo = make_repo(isolated, "repo-selected", "selected")
+
+    assert main(["add", str(repo), "--name", "repo-selected"]) == 0
+
+    codex_target = isolated / "home" / ".agents" / "skills"
+    claude_target = isolated / "home" / ".claude" / "skills"
+    opencode_target = isolated / "home" / ".config" / "opencode" / "skills"
+    assert (codex_target / "selected").is_symlink()
+    assert not (claude_target / "selected").exists()
+    assert (opencode_target / "selected").is_symlink()
+
+
+def test_add_interactive_all_choice_links_all_agents(isolated, monkeypatch):
+    monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+    monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+    monkeypatch.setattr("builtins.input", lambda _prompt: "4")
+    repo = make_repo(isolated, "repo-all", "allskill")
+
+    assert main(["add", str(repo), "--name", "repo-all"]) == 0
+
+    assert (isolated / "home" / ".agents" / "skills" / "allskill").is_symlink()
+    assert (isolated / "home" / ".claude" / "skills" / "allskill").is_symlink()
+    assert (isolated / "home" / ".config" / "opencode" / "skills" / "allskill").is_symlink()
+
+
 def test_project_add_writes_nested_project_repos(isolated, monkeypatch, capsys):
     project_repo = make_repo(isolated, "nsdk", "project-skill")
     skill_repo = make_repo(isolated, "nsdk-skills", "helper")
@@ -153,6 +209,7 @@ def test_unlink_requires_explicit_all(isolated, capsys):
 
 def test_config_prints_absolute_path(isolated, capsys):
     assert main(["init"]) == 0
+    capsys.readouterr()
     assert main(["config"]) == 0
     assert capsys.readouterr().out.strip() == str(paths.config_path())
 
