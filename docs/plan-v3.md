@@ -34,8 +34,8 @@ If needed, update `pyproject.toml` so that:
 - Python version requirement is appropriate, preferably >=3.10
 - project URLs include:
   Homepage = "https://skillhost.dev"
-  Repository = "https://github.com/skillhost-dev/skillhost"
-  Issues = "https://github.com/skillhost-dev/skillhost/issues"
+  Repository = "https://github.com/wang-chonghuan/skillhost"
+  Issues = "https://github.com/wang-chonghuan/skillhost/issues"
 
 2. Check the package locally.
 Run:

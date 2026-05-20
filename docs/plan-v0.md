@@ -110,9 +110,9 @@ Secondary CTA:
 
 Links:
 Use constants in App.tsx or a small object:
-- GITHUB_URL = "https://github.com/skillhost-dev/skillhost"
+- GITHUB_URL = "https://github.com/wang-chonghuan/skillhost"
 - PYPI_URL = "https://pypi.org/project/skillhost/"
-- DOCS_URL = "https://github.com/skillhost-dev/skillhost#readme"
+- DOCS_URL = "https://github.com/wang-chonghuan/skillhost#readme"
 
 If the repo URL is unknown, still use these placeholders consistently and make them easy to change.
 

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "skillhost"
-version = "0.1.1"
+version = "0.1.2"
 description = "Install Agent Skills from Git repositories using symlinks"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -24,8 +24,8 @@ dependencies = []
 
 [project.urls]
 Homepage = "https://skillhost.dev"
-Repository = "https://github.com/skillhost-dev/skillhost"
-Issues = "https://github.com/skillhost-dev/skillhost/issues"
+Repository = "https://github.com/wang-chonghuan/skillhost"
+Issues = "https://github.com/wang-chonghuan/skillhost/issues"
 
 [project.scripts]
 skillhost = "skillhost.cli:main"

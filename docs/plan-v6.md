@@ -66,7 +66,7 @@ Top bar requirements:
 
 Links:
 Use constants so they are easy to change:
-- GITHUB_URL = "https://github.com/skillhost-dev/skillhost"
+- GITHUB_URL = "https://github.com/wang-chonghuan/skillhost"
 - PYPI_URL = "https://pypi.org/project/skillhost/"
 - DOCS_TEXT should contain a compact quick-start document that can be copied.
 - The Copy docs button copies DOCS_TEXT to clipboard and shows a short copied state.
