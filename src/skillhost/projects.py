@@ -17,14 +17,14 @@ def current_project_context(project: str | None = None, cwd: str | Path = ".") -
     if project:
         pdata = projects.get(project)
         if pdata is None:
-            raise SkillhostError(f"Project '{project}' is not registered")
+            raise SkillhostError(f"Project not registered: {project}")
         remotes = pdata.get("remotes", [])
         if remotes and origin not in remotes:
             raise SkillhostError(f"Current repository ({origin}) does not match registered project '{project}'")
         return project, root
-    matched = config.get_project_by_remote(origin)
-    if not matched:
-        raise SkillhostError(
-            "Current directory is not a registered project. Run: skillhost project register <name> --git <repo-url>"
-        )
-    return matched, root
+    for name, pdata in projects.items():
+        if origin in pdata.get("remotes", []):
+            return name, root
+    raise SkillhostError(
+        "Current directory is not a registered project. Run: skillhost register --project <name> --git <repo-url>"
+    )

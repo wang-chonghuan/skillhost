@@ -1,15 +1,8 @@
 # SkillHost
 
-Install Agent Skills from Git repos into Codex, Claude Code, and OpenCode using symlinks.
+SkillHost manages Agent Skills from Git repositories.
 
-SkillHost is intentionally small:
-
-- Git is the distribution system.
-- Symlinks are the install system.
-- No registry, no server, no account.
-- Manifest files make unlink and remove safe.
-
-The tool website is **skillhost.dev**.
+It keeps Git as the source of truth, symlinks as the install system, and JSON config as the persistent source of truth.
 
 ## Install
 
@@ -19,92 +12,97 @@ uv tool install skillhost
 pip install skillhost
 ```
 
-From a checkout you can also run:
-
-```sh
-pipx install .
-uv tool install .
-pip install .
-```
-
-## User-level skills
-
-User-level skills are shared across projects.
-
-```sh
-skillhost add git@github.com:your-org/company-skills.git
-```
-
-After cloning, SkillHost discovers `SKILL.md` files and asks where to link them:
+## CLI
 
 ```text
-Codex user skills:       ~/.agents/skills
-Claude Code user skills: ~/.claude/skills
-OpenCode user skills:    ~/.config/opencode/skills
-All supported agents
-Custom directory
-Skip linking
+skillhost
+  init
+
+  register --project <name> --git <project-git-url>
+  unregister --project <name>
+
+  register --agent <name> --user-dir <path> [--project-dir <path>]
+  unregister --agent <name>
+
+  add <skill-git-repo> [--project <name>] [--name <repo-name>]
+  update [repo-name] [--project <name>] [--all]
+  remove <repo-name> [--project <name>]
+
+  relink [repo-name] [--project <name>] [--agent <name>] [--all]
+  unlink [repo-name] [--project <name>] [--agent <name>] [--all]
+
+  list [--project <name>]
+  projects
+  agents
+  doctor [--project <name>]
+
+  config
 ```
 
-For scripts and CI, choose the target explicitly:
+User scope is the default. Project scope is selected only with `--project <name>`.
 
-```sh
-skillhost add git@github.com:your-org/company-skills.git --agent codex --yes
-skillhost add git@github.com:your-org/company-skills.git --target-dir ~/custom-skills --yes
+## Layout
+
+```text
+~/.skillhost/
+  config.json
+  user_repos/
+    <repo-name>/
+  project_repos/
+    <project-name>/
+      <repo-name>/
 ```
 
-Update pulls the latest Git changes. With no selectors, it updates all known user and project repos:
+`skillhost config` prints the absolute path to `config.json`.
+
+`config.json` is the source of truth for:
+- registered agents
+- registered projects
+- user skill repos
+- project skill repos
+- repo URLs
+- normalized URLs
+- local repo paths
+
+Each target directory also keeps a local `.skillhost-links.json` manifest so unlink and remove only touch SkillHost-managed links.
+
+## Examples
 
 ```sh
+skillhost init
+
+skillhost register --project nsdk --git git@github.com:your-org/nsdk.git
+skillhost register --agent cursor --user-dir ~/.cursor/skills --project-dir .cursor/skills
+
+skillhost add git@github.com:your-org/company-skills.git
+skillhost add git@github.com:your-org/nsdk-skills.git --project nsdk
+
 skillhost update
-skillhost update --user_repos company-skills
-skillhost update --project_repos my-project/project-skills
-skillhost update --user_repos company-skills --agent codex --yes
-```
+skillhost update company-skills
+skillhost update --project nsdk
+skillhost update --project nsdk --all
 
-Link or unlink all registered user-level repos at any time:
+skillhost relink
+skillhost relink --agent codex
+skillhost relink --project nsdk
+skillhost unlink company-skills --agent codex
+skillhost unlink --project nsdk --all
 
-```sh
-skillhost link
-skillhost link --agent codex
-skillhost link --target-dir /path/to/skills
-skillhost unlink --agent claude --dry-run
 skillhost list
+skillhost list --project nsdk
+skillhost projects
+skillhost agents
 skillhost doctor
+skillhost doctor --project nsdk
+
+skillhost remove company-skills
+skillhost remove nsdk-skills --project nsdk
+
+skillhost unregister --agent cursor
+skillhost unregister --project nsdk
 ```
 
-`--agent` and `--target-dir` are mutually exclusive. Custom target directories get their own `.skillhost-links.json` manifests.
-
-## Project-level skills
-
-Project-level skills are linked into the current Git repository checkout. There is no full-disk search and no automatic discovery across all checkouts.
-
-```sh
-cd ~/code/my-project
-skillhost project register my-project --git git@github.com:your-org/my-project.git
-skillhost project add git@github.com:your-org/my-project-skills.git --project my-project
-skillhost project link
-```
-
-`skillhost project link` determines the current Git repository root with Git, reads the origin remote, normalizes it, and matches it against registered project remotes. If it cannot match the current directory, register the project first.
-
-## Target directories
-
-User targets:
-
-- Codex: `~/.agents/skills`
-- Claude Code: `~/.claude/skills`
-- OpenCode: `~/.config/opencode/skills`
-
-Project targets:
-
-- Codex: `.agents/skills`
-- Claude Code: `.claude/skills`
-- OpenCode: `.opencode/skills`
-
-SkillHost uses each agent's native target directory. It does not rely on one agent reading another agent's directory.
-
-## Source repository layouts
+## Repository layouts
 
 Single skill repo:
 
@@ -113,7 +111,7 @@ my-skill/
   SKILL.md
 ```
 
-Skill collection repo:
+Collection repo:
 
 ```text
 company-skills/
@@ -134,35 +132,4 @@ company-skills/
     SKILL.md
 ```
 
-Skill discovery is shallow and only considers valid skills that contain `SKILL.md`. It does not recursively scan references, assets, examples, scripts, docs, or tests.
-
-## Frontmatter
-
-A `SKILL.md` can include simple YAML-style frontmatter:
-
-```md
----
-name: ng-git
-description: Narrative git workflow helpers
----
-```
-
-Skill names must contain only lowercase letters, digits, and hyphens. If no name is present, SkillHost uses the skill directory or repo name.
-
-## Conflict policy
-
-- Existing user-owned skills are never overwritten.
-- Duplicate skill names across source repos are skipped and reported.
-- `unlink` only removes SkillHost-managed symlinks recorded in `.skillhost-links.json`.
-- `remove` unlinks manifest-managed symlinks before deleting a user repo; dirty repos are refused unless `--force` is used.
-
-## Security
-
-SkillHost never executes code from skill repositories. It only:
-
-1. clones repositories with Git,
-2. updates repositories with `git pull --ff-only`,
-3. reads `SKILL.md` metadata, and
-4. creates or removes manifest-managed symlinks.
-
-SkillHost does not implement registry support, semver, package resolution, full-disk project discovery, or auto-running skill scripts.
+Skill discovery is shallow. SkillHost does not execute code from skill repositories.
