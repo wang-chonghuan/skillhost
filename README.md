@@ -1,8 +1,8 @@
-# Skillhost
+# SkillHost
 
 Install Agent Skills from Git repos into Codex, Claude Code, and OpenCode using symlinks.
 
-Skillhost is intentionally small:
+SkillHost is intentionally small:
 
 - Git is the distribution system.
 - Symlinks are the install system.
@@ -16,6 +16,7 @@ The tool website is **skillhost.dev**.
 ```sh
 pipx install skillhost
 uv tool install skillhost
+pip install skillhost
 ```
 
 From a checkout you can also run:
@@ -32,18 +33,47 @@ User-level skills are shared across projects.
 
 ```sh
 skillhost add git@github.com:your-org/company-skills.git
+```
+
+After cloning, SkillHost discovers `SKILL.md` files and asks where to link them:
+
+```text
+Codex user skills:       ~/.agents/skills
+Claude Code user skills: ~/.claude/skills
+OpenCode user skills:    ~/.config/opencode/skills
+All supported agents
+Custom directory
+Skip linking
+```
+
+For scripts and CI, choose the target explicitly:
+
+```sh
+skillhost add git@github.com:your-org/company-skills.git --agent codex --yes
+skillhost add git@github.com:your-org/company-skills.git --target-dir ~/custom-skills --yes
+```
+
+Update pulls the latest Git changes. With no selectors, it updates all known user and project repos:
+
+```sh
 skillhost update
+skillhost update --user_repos company-skills
+skillhost update --project_repos my-project/project-skills
+skillhost update --user_repos company-skills --agent codex --yes
+```
+
+Link or unlink all registered user-level repos at any time:
+
+```sh
 skillhost link
+skillhost link --agent codex
+skillhost link --target-dir /path/to/skills
+skillhost unlink --agent claude --dry-run
 skillhost list
 skillhost doctor
 ```
 
-By default `skillhost link` links to all supported agents. You can target one agent:
-
-```sh
-skillhost link --agent codex
-skillhost unlink --agent claude --dry-run
-```
+`--agent` and `--target-dir` are mutually exclusive. Custom target directories get their own `.skillhost-links.json` manifests.
 
 ## Project-level skills
 
@@ -72,7 +102,7 @@ Project targets:
 - Claude Code: `.claude/skills`
 - OpenCode: `.opencode/skills`
 
-Skillhost uses each agent's native target directory. It does not rely on one agent reading another agent's directory.
+SkillHost uses each agent's native target directory. It does not rely on one agent reading another agent's directory.
 
 ## Source repository layouts
 
@@ -117,22 +147,22 @@ description: Narrative git workflow helpers
 ---
 ```
 
-Skill names must contain only lowercase letters, digits, and hyphens. If no name is present, Skillhost uses the skill directory or repo name.
+Skill names must contain only lowercase letters, digits, and hyphens. If no name is present, SkillHost uses the skill directory or repo name.
 
 ## Conflict policy
 
 - Existing user-owned skills are never overwritten.
 - Duplicate skill names across source repos are skipped and reported.
-- `unlink` only removes skillhost-managed symlinks recorded in `.skillhost-links.json`.
+- `unlink` only removes SkillHost-managed symlinks recorded in `.skillhost-links.json`.
 - `remove` unlinks manifest-managed symlinks before deleting a user repo; dirty repos are refused unless `--force` is used.
 
 ## Security
 
-Skillhost never executes code from skill repositories. It only:
+SkillHost never executes code from skill repositories. It only:
 
 1. clones repositories with Git,
 2. updates repositories with `git pull --ff-only`,
 3. reads `SKILL.md` metadata, and
 4. creates or removes manifest-managed symlinks.
 
-Skillhost does not implement registry support, semver, package resolution, full-disk project discovery, or auto-running skill scripts.
+SkillHost does not implement registry support, semver, package resolution, full-disk project discovery, or auto-running skill scripts.

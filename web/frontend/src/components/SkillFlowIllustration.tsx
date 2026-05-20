@@ -60,8 +60,8 @@ export function SkillFlowIllustration() {
 
         <div className="rounded-2xl bg-code p-4 font-mono text-xs leading-6 text-slate-200 shadow-card">
           <p><span className="text-sky-300">$</span> skillhost add git@github.com:acme/acme-skills.git</p>
-          <p><span className="text-sky-300">$</span> skillhost link</p>
-          <p className="mt-2 text-emerald-300">linked codex · claude · opencode</p>
+          <p><span className="text-sky-300">?</span> Link discovered skills now? 1</p>
+          <p className="mt-2 text-emerald-300">linked codex user skills</p>
         </div>
       </div>
     </div>

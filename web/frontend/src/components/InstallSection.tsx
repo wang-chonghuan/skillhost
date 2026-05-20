@@ -13,8 +13,8 @@ const installs = [
 ];
 
 const nextSteps = `skillhost add git@github.com:your-org/company-skills.git
-skillhost link
-skillhost project register my-project --git git@github.com:your-org/my-project.git`;
+# choose Codex, Claude Code, OpenCode, all, custom, or skip
+skillhost update --agent codex --yes`;
 
 export function InstallSection({ githubUrl, pypiUrl, docsUrl }: InstallSectionProps) {
   return (
@@ -24,7 +24,7 @@ export function InstallSection({ githubUrl, pypiUrl, docsUrl }: InstallSectionPr
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.22em] text-primary-strong">Install</p>
             <h2 id="install-title" className="mt-4 font-display text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
-              Install. Add. Link.
+              Install. Add. Sync.
             </h2>
             <p className="mt-5 leading-8 text-muted">
               Start with any standard Python installer.

@@ -62,7 +62,10 @@ class SkillhostFrontendAcceptanceTests(unittest.TestCase):
             "If you use the same skills across Codex, Claude Code, OpenClaw, and future agents.",
             "Manual copying creates drift.",
             "Project-specific skills should not leak into every workspace.",
-            "SkillHost keeps skills in Git and links them into each agent’s native skill directory, either globally for the user or locally for a project.",
+            (
+                "SkillHost keeps skills in Git and links them into each agent’s native skill directory, "
+                "either globally for the user or locally for a project."
+            ),
             "Git-backed updates · Global or project-local links · Manifest-safe cleanup",
             "https://github.com/skillhost-dev/skillhost",
             "https://pypi.org/project/skillhost/",
@@ -71,7 +74,9 @@ class SkillhostFrontendAcceptanceTests(unittest.TestCase):
             "pipx install skillhost",
             "pip install skillhost",
             "skillhost add git@github.com:your-org/company-skills.git",
-            "skillhost link",
+            "choose Codex, Claude Code, OpenCode, all, custom, or skip",
+            "skillhost update --agent codex --yes",
+            "skillhost link --target-dir ~/custom-skills",
             "skillhost project register my-project --git git@github.com:your-org/my-project.git",
             "skillhost project add git@github.com:your-org/my-project-skills.git --project my-project",
             "skillhost project remove project-skills --project my-project",
@@ -96,8 +101,8 @@ class SkillhostFrontendAcceptanceTests(unittest.TestCase):
             "Native agent directories",
             "Conflict-aware linking",
             "Add a Git repo",
-            "Discover SKILL.md files",
-            "Pull updates and relink",
+            "Choose targets",
+            "Pull updates and refresh",
             "No hosted registry",
             "No skill execution",
             "Conflict-aware by default",

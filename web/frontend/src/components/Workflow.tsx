@@ -4,14 +4,14 @@ const steps = [
   {
     number: '01',
     title: 'Add a Git repo',
-    description: 'Register a repository containing one skill or a collection of skills.',
+    description: 'Register a skill repo, discover SKILL.md files, and choose where to link.',
     code: 'skillhost add git@github.com:your-org/company-skills.git',
   },
   {
     number: '02',
-    title: 'Discover SKILL.md files',
-    description: 'SkillHost finds every valid skill layout automatically.',
-    code: 'skillhost list',
+    title: 'Choose targets',
+    description: 'Link to Codex, Claude Code, OpenCode, all agents, or a custom directory.',
+    code: 'skillhost add ... --agent codex --yes',
   },
   {
     number: '03',
@@ -21,9 +21,9 @@ const steps = [
   },
   {
     number: '04',
-    title: 'Pull updates and relink',
-    description: 'Update from Git and refresh links instead of copying folders again.',
-    code: 'skillhost update && skillhost link',
+    title: 'Pull updates and refresh',
+    description: 'Update from Git and relink without copying folders again.',
+    code: 'skillhost update --agent codex --yes',
   },
   {
     number: '05',
@@ -34,8 +34,8 @@ const steps = [
 ];
 
 const userCommands = `skillhost add git@github.com:your-org/company-skills.git
-skillhost update
-skillhost link`;
+skillhost update --user_repos company-skills
+skillhost link --target-dir ~/custom-skills`;
 
 const projectCommands = `cd ~/code/my-project
 skillhost project register my-project --git git@github.com:your-org/my-project.git
@@ -56,7 +56,7 @@ export function Workflow() {
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.22em] text-primary-strong">Workflow</p>
             <h2 id="workflow-title" className="mt-4 font-display text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
-              Add, link, update.
+              Add, choose, update.
             </h2>
             <p className="mt-5 max-w-xl leading-8 text-muted">
               A tiny CLI flow for shared skills across agents.

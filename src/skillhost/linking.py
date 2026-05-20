@@ -32,12 +32,13 @@ def save_manifest(target_dir: str | Path, manifest: dict) -> None:
     (target / MANIFEST).write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
-def _record(skill: Skill, agent: str) -> dict[str, str | None]:
+def _record(skill: Skill, agent: str, target_kind: str = "agent") -> dict[str, str | None]:
     return {
         "source": str(skill.source_path.resolve()),
         "scope": skill.scope,
         "repo": skill.repo_name,
-        "agent": agent,
+        "agent": agent if target_kind == "agent" else None,
+        "target_kind": target_kind,
         "project": skill.project,
     }
 
@@ -59,6 +60,7 @@ def link_skills(
     scope: str,
     project: str | None = None,
     dry_run: bool = False,
+    target_kinds: dict[str, str] | None = None,
 ) -> int:
     """Link skills to targets. Returns conflict/skip count."""
     duplicate_names = _duplicates(skills)
@@ -68,7 +70,9 @@ def link_skills(
         failures += 1
     linkable = [s for s in skills if s.name not in duplicate_names]
 
+    target_kinds = target_kinds or {}
     for agent, target_dir in targets.items():
+        target_kind = target_kinds.get(agent, "agent")
         manifest = load_manifest(target_dir)
         changed = False
         for skill in linkable:
@@ -78,8 +82,15 @@ def link_skills(
             source = str(skill.source_path.resolve())
             existing = manifest["links"].get(skill.name)
             if dest.exists() or dest.is_symlink():
-                if existing and existing.get("scope") == scope and existing.get("agent") == agent:
-                    same_owner = existing.get("repo") == skill.repo_name and existing.get("project") == skill.project
+                if existing and existing.get("scope") == scope:
+                    existing_agent = existing.get("agent")
+                    existing_kind = existing.get("target_kind") or ("agent" if existing_agent else "custom")
+                    same_target = existing_agent == agent or (target_kind == "custom" and existing_kind == "custom")
+                    same_owner = (
+                        same_target
+                        and existing.get("repo") == skill.repo_name
+                        and existing.get("project") == skill.project
+                    )
                     if os.path.islink(dest) and same_owner:
                         current = os.path.realpath(dest)
                         if current == source:
@@ -89,7 +100,7 @@ def link_skills(
                         if not dry_run:
                             dest.unlink()
                             _create_symlink(skill.source_path, dest)
-                            manifest["links"][skill.name] = _record(skill, agent)
+                            manifest["links"][skill.name] = _record(skill, agent, target_kind)
                             changed = True
                         continue
                 print(f"Warning: target exists and is not skillhost-managed; skipping {dest}", file=sys.stderr)
@@ -99,7 +110,7 @@ def link_skills(
             if not dry_run:
                 target_dir.mkdir(parents=True, exist_ok=True)
                 _create_symlink(skill.source_path, dest)
-                manifest["links"][skill.name] = _record(skill, agent)
+                manifest["links"][skill.name] = _record(skill, agent, target_kind)
                 changed = True
         if changed and not dry_run or not dry_run and (target_dir / MANIFEST).exists():
             save_manifest(target_dir, manifest)
