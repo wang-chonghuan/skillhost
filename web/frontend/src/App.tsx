@@ -7,14 +7,14 @@ const GITHUB_URL = 'https://github.com/wang-chonghuan/skillhost';
 const PYPI_URL = 'https://pypi.org/project/skillhost/';
 
 const heroInstallOptions = [
-  { label: 'pip', command: 'pip install skillhost' },
+  { label: 'pipx', command: 'pipx install skillhost' },
   { label: 'uv', command: 'uv tool install skillhost' },
+  { label: 'pip', command: 'pip install skillhost' },
 ];
 
-const installCommands = `uv tool install skillhost
-pipx install skillhost
-pip install skillhost
-uv tool install git+https://github.com/wang-chonghuan/skillhost.git`;
+const installCommands = `pipx install skillhost
+uv tool install skillhost
+pip install skillhost`;
 
 const scenarioOneCommands = `skillhost add git@github.com:my-org/company-skills.git`;
 
@@ -24,8 +24,8 @@ const scenarioTwoCommands = `skillhost add git@github.com:my-org/team-skills.git
 
 const scenarioTwoUpdateCommands = `skillhost update`;
 
-const scenarioThreeCommands = `skillhost project register my-project --git git@github.com:my-org/my-project.git
-skillhost project add git@github.com:my-org/my-project-skills.git --project my-project`;
+const scenarioThreeCommands = `skillhost register --project my-project --git git@github.com:my-org/my-project.git
+skillhost add git@github.com:my-org/my-project-skills.git --project my-project`;
 
 const scenarioThreeUpdateCommands = `skillhost update --project my-project`;
 
@@ -44,8 +44,8 @@ const projectTargets = [
 const userCommands = `skillhost add <git-repo>
 skillhost update`;
 
-const projectCommands = `skillhost project register <project> --git <project-git-url>
-skillhost project add <skill-git-repo> --project <project>
+const projectCommands = `skillhost register --project <project> --git <project-git-url>
+skillhost add <skill-git-repo> --project <project>
 skillhost update --project <project>`;
 
 const repoFormats = `Single skill:
@@ -77,10 +77,9 @@ const safetyNotes = [
 const DOCS_TEXT = `# SkillHost quick start
 
 Install:
-uv tool install skillhost
 pipx install skillhost
+uv tool install skillhost
 pip install skillhost
-uv tool install git+https://github.com/wang-chonghuan/skillhost.git
 
 Scenario 1 — many local skills for every agent:
 skillhost add git@github.com:my-org/company-skills.git
@@ -96,8 +95,8 @@ skillhost add git@github.com:my-org/team-skills.git
 skillhost update
 
 Scenario 3 — project-only skills:
-skillhost project register my-project --git git@github.com:my-org/my-project.git
-skillhost project add git@github.com:my-org/my-project-skills.git --project my-project
+skillhost register --project my-project --git git@github.com:my-org/my-project.git
+skillhost add git@github.com:my-org/my-project-skills.git --project my-project
 
 Update from the project checkout:
 skillhost update --project my-project
@@ -333,10 +332,10 @@ export default function App() {
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.22em] text-cyan-700 dark:text-cyan-300">skillhost.dev</p>
             <h1 id="hero-title" className="mt-5 max-w-4xl text-4xl font-semibold tracking-[-0.04em] text-slate-950 dark:text-white sm:text-6xl">
-              Agent Skills should not be copied and updated manually.
+              Share skills across your agents.
             </h1>
             <div className="mt-6 max-w-4xl space-y-4 text-lg leading-8 text-slate-600 dark:text-slate-300">
-              <p>SkillHost installs skills from Git repositories into Codex, Claude Code, and other AI agents. Add once, update with Git, and keep user-level and project-level skills cleanly separated.</p>
+              <p>SkillHost keeps your AI agent skills easy to share, update, and organize. Use the same skills across agents, teammates, and projects.</p>
             </div>
           </div>
           <div className="mt-8">
