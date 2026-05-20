@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import argparse
+import os
+import subprocess
 import shutil
 import sys
 import tempfile
@@ -294,18 +296,6 @@ def _relink_selected(scope: str, project: str | None, repo_name: str | None, age
     return USER_ERROR if failures else 0
 
 
-def cmd_init(_args: argparse.Namespace) -> int:
-    config.ensure_default_config()
-    print("SkillHost initialized.")
-    print(f"Home: {paths.skillhost_home()}")
-    print(f"Config: {paths.config_path()}")
-    print(f"User repos: {paths.user_repos_dir()}")
-    print(f"Project repos: {paths.project_repos_root()}")
-    print("Next steps:")
-    print("  skillhost add <skill-git-repo>")
-    print("  skillhost list")
-    return 0
-
 
 def cmd_register(args: argparse.Namespace) -> int:
     if bool(args.project) == bool(args.agent):
@@ -374,6 +364,40 @@ def cmd_add(args: argparse.Namespace) -> int:
         return 0
 
 
+def _selected_agent_names(agent_name: str | None) -> list[str] | None:
+    if agent_name:
+        return [agent_name]
+    return _select_add_targets()
+
+
+def _unlink_repo_links_for_agents(
+    scope: str,
+    project: str | None,
+    repo_name: str,
+    agent_names: list[str] | None,
+) -> int:
+    if agent_names is None:
+        return _unlink_repo_links(scope, project, repo_name, None)
+    removed = 0
+    for agent_name in agent_names:
+        removed += _unlink_repo_links(scope, project, repo_name, agent_name)
+    return removed
+
+
+def _relink_selected_agents(
+    scope: str,
+    project: str | None,
+    repo_name: str | None,
+    agent_names: list[str] | None,
+) -> int:
+    if agent_names is None:
+        return _relink_selected(scope, project, repo_name, None)
+    failures = 0
+    for agent_name in agent_names:
+        failures |= _relink_selected(scope, project, repo_name, agent_name)
+    return USER_ERROR if failures else 0
+
+
 def cmd_update(args: argparse.Namespace) -> int:
     scope, base_dir, project = _selected_scope(args.project)
     names = _all_repo_names(scope, project)
@@ -381,17 +405,18 @@ def cmd_update(args: argparse.Namespace) -> int:
         if args.repo_name not in names:
             raise SkillhostError(f"Repo not found in selected scope: {args.repo_name}")
         names = [args.repo_name]
+    agent_names = _selected_agent_names(args.agent)
     if scope == "user":
         for name in names:
-            _unlink_repo_links(scope, project, name, args.agent)
+            _unlink_repo_links_for_agents(scope, project, name, agent_names)
             pull_ff_only(base_dir / name)
             print(f"Updated {name}")
-        return _relink_selected(scope, project, args.repo_name, args.agent)
+        return _relink_selected_agents(scope, project, args.repo_name, agent_names)
 
     can_relink = True
     try:
         for name in names:
-            _unlink_repo_links(scope, project, name, args.agent)
+            _unlink_repo_links_for_agents(scope, project, name, agent_names)
     except SkillhostError:
         can_relink = False
     for name in names:
@@ -399,7 +424,7 @@ def cmd_update(args: argparse.Namespace) -> int:
         print(f"Updated {name}")
     if can_relink:
         try:
-            return _relink_selected(scope, project, args.repo_name, args.agent)
+            return _relink_selected_agents(scope, project, args.repo_name, agent_names)
         except SkillhostError:
             pass
     print("Updated project skill repo(s).")
@@ -589,12 +614,40 @@ def cmd_config(_args: argparse.Namespace) -> int:
     return 0
 
 
+def _upgrade_command() -> list[str]:
+    executable = Path(sys.executable).resolve()
+    executable_parts = set(executable.parts)
+    env = os.environ
+
+    if "pipx" in executable_parts or env.get("PIPX_HOME"):
+        return ["pipx", "upgrade", "skillhost"]
+
+    uv_tool_dir = env.get("UV_TOOL_DIR")
+    if uv_tool_dir and executable.is_relative_to(Path(uv_tool_dir).expanduser().resolve()):
+        return ["uv", "tool", "upgrade", "skillhost"]
+
+    if "uv" in executable_parts and "tools" in executable_parts:
+        return ["uv", "tool", "upgrade", "skillhost"]
+
+    return [sys.executable, "-m", "pip", "install", "--upgrade", "skillhost"]
+
+
+def cmd_upgrade(_args: argparse.Namespace) -> int:
+    command = _upgrade_command()
+    print("Upgrading SkillHost with:")
+    print("  " + " ".join(command))
+    result = subprocess.run(command)
+    if result.returncode == 0:
+        print("SkillHost upgraded.")
+    return result.returncode
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="skillhost")
     parser.add_argument("--version", action="version", version=f"skillhost {__version__}")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    sub.add_parser("init").set_defaults(func=cmd_init)
+    sub.add_parser("upgrade").set_defaults(func=cmd_upgrade)
 
     p = sub.add_parser("register")
     p.add_argument("--project")

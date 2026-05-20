@@ -19,11 +19,13 @@ uv tool install .
 pip install .
 ```
 
+SkillHost does not need an initialization step. Regular commands create the default `~/.skillhost` state they need on demand; commands that do not need persistent config can run before `config.json` exists.
+
 ## Current command list
 
 ```text
 skillhost [-h] [--version]
-  init
+  upgrade
 
   register --project <name> --git <project-git-url>
   register --agent <name> --user-dir <path> [--project-dir <path>]
@@ -140,7 +142,6 @@ Agent registration updates config only. It does not link automatically; run `ski
 ## User-level workflow
 
 ```sh
-skillhost init
 skillhost add git@github.com:org/company-skills.git
 skillhost list
 skillhost update
@@ -183,9 +184,13 @@ If you add or update a project skill repository outside the matching checkout, t
 
 ## Command details
 
-### `skillhost init`
+### `skillhost upgrade`
 
-Creates the default `~/.skillhost` layout and `config.json` if they do not already exist. It prints a short summary with the SkillHost home path, config path, repo storage paths, and suggested next commands.
+```sh
+skillhost upgrade
+```
+
+Updates the installed SkillHost package using the installer that appears to own the current command: `pipx upgrade skillhost` for pipx-managed installs, `uv tool upgrade skillhost` for uv tool installs, and `python -m pip install --upgrade skillhost` as the fallback for ordinary pip or virtualenv installs.
 
 ### `skillhost register`
 
@@ -221,7 +226,7 @@ After a successful interactive `add`, SkillHost opens a small terminal selector 
 skillhost update [repo-name] [--project <name>] [--agent {codex,claude,opencode,openclaw,hermes}] [--all]
 ```
 
-Before updating, removes existing SkillHost-managed links for the selected repository or repositories so renamed or deleted skill directories do not leave stale symlinks behind. Then runs `git pull --ff-only` for one repository or all repositories in the selected scope. It does not merge or rebase. After updating, it relinks the selected scope when possible.
+Before updating, `update` uses the same target selection flow as `add` and `relink` unless `--agent` is provided. It removes existing SkillHost-managed links for the selected repository or repositories only in the selected agent targets, so renamed or deleted skill directories do not leave stale symlinks behind. Then it runs `git pull --ff-only` for one repository or all repositories in the selected scope. It does not merge or rebase. After updating, it relinks the same selected agent targets when possible. Non-interactive `update` defaults to all enabled targets.
 
 ### `skillhost remove`
 

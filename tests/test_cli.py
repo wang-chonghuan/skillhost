@@ -18,7 +18,7 @@ def test_version_still_works(capsys):
 
 @pytest.mark.parametrize(
     "command",
-    ["register", "unregister", "add", "update", "remove", "relink", "unlink", "list", "projects", "agents", "doctor", "config"],
+    ["register", "unregister", "add", "update", "remove", "relink", "unlink", "list", "projects", "agents", "doctor", "config", "upgrade"],
 )
 def test_top_level_command_help_works(command):
     assert_exits([command, "--help"], 0)
@@ -29,8 +29,8 @@ def test_root_command_list_has_v7_commands():
     subparsers = next(action for action in parser._actions if getattr(action, "dest", None) == "command")
     command_names = set(subparsers.choices)
     assert {
-        "init",
         "register",
+        "upgrade",
         "unregister",
         "add",
         "update",

@@ -120,6 +120,8 @@ def cleanup_real_fixture_state() -> None:
     remove_manifest_links_for_repos(repo_names)
     for repo_name in repo_names:
         shutil.rmtree(Path.home() / ".skillhost" / "user_repos" / repo_name, ignore_errors=True)
+    for project_name in project_names:
+        shutil.rmtree(Path.home() / ".skillhost" / "project_repos" / project_name, ignore_errors=True)
     shutil.rmtree(REAL_CHECKOUT_ROOT, ignore_errors=True)
     remove_config_entries(repo_names, project_names)
 
@@ -159,8 +161,6 @@ def discover_installed_skill_names(repo_name: str) -> list[str]:
 
 @pytest.mark.real_e2e
 def test_real_user_skill_repos_add_relink_clean_against_public_fixture_repos():
-    run_skillhost(["init"])
-
     first_repo = "skill-collection-study"
     add = run_skillhost(["add", SKILL_REPOS[first_repo]], input_text="1,4,5\n")
     assert f"Added repo '{first_repo}'." in add.stdout
@@ -201,16 +201,14 @@ def test_real_user_skill_repos_add_relink_clean_against_public_fixture_repos():
 
 @pytest.mark.real_e2e
 def test_real_project_repo_register_add_project_skills_and_clean_public_fixtures():
-    run_skillhost(["init"])
-
     project_name = "project-a"
     project_dir = clone_real_project(project_name)
     run_skillhost(["register", "--project", project_name, "--git", PROJECT_REPOS[project_name]])
 
     repo_name = PROJECT_SKILL_REPO
-    add = run_skillhost(["add", SKILL_REPOS[repo_name], "--project", project_name], cwd=project_dir, input_text="1,2,3\n")
+    add = run_skillhost(["add", SKILL_REPOS[repo_name], "--project", project_name], cwd=project_dir, input_text="6\n")
     assert f"Added repo '{repo_name}'." in add.stdout
-    assert "3 skills added." in add.stdout
+    assert "4 skills added." in add.stdout
 
     for skill_name in EXPECTED_SKILLS[repo_name]:
         for relative_target in PROJECT_AGENT_DIRS.values():

@@ -52,8 +52,8 @@ class SkillhostFrontendV6AcceptanceTests(unittest.TestCase):
             "skillhost add git@github.com:my-org/company-skills.git",
             "skillhost add git@github.com:my-org/team-skills.git",
             "skillhost update",
-            "skillhost project register my-project --git git@github.com:my-org/my-project.git",
-            "skillhost project add git@github.com:my-org/my-project-skills.git --project my-project",
+            "skillhost register --project my-project --git git@github.com:my-org/my-project.git",
+            "skillhost add git@github.com:my-org/my-project-skills.git --project my-project",
             "skillhost update --project my-project",
             "skillhost add <git-repo>",
             "skillhost update --project <project>",
@@ -86,9 +86,8 @@ class SkillhostFrontendV6AcceptanceTests(unittest.TestCase):
         app = read("src/App.tsx")
         combined = app_sources()
         expected = [
-            "Agent Skills should not be copied and updated manually.",
-            "SkillHost installs skills from Git repositories into Codex, Claude Code, and other AI agents.",
-            "Add once, update with Git, and keep user-level and project-level skills cleanly separated.",
+            "Share skills across your agents.",
+            "SkillHost keeps your AI agent skills easy to share, update, and organize. Use the same skills across agents, teammates, and projects.",
             "Scenario 1 — Make one skill repo available to every local agent.",
             "Scenario 2 — Share team skills without copy-paste drift.",
             "Scenario 3 — Keep project-only skills inside one repo.",
@@ -155,7 +154,6 @@ class SkillhostFrontendV6AcceptanceTests(unittest.TestCase):
             "uv tool install skillhost",
             "pipx install skillhost",
             "pip install skillhost",
-            "uv tool install git+https://github.com/wang-chonghuan/skillhost.git",
             "~/.agents/skills",
             "~/.claude/skills",
             "~/.config/opencode/skills",

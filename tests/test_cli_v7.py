@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 
 from skillhost import config, paths
-from skillhost.cli import build_parser, main
+from skillhost.cli import build_parser, main, _upgrade_command
 from skillhost.linking import load_manifest
 
 
@@ -64,8 +64,8 @@ def test_help_surface_matches_v7():
     subparsers = next(action for action in parser._actions if getattr(action, "dest", None) == "command")
     command_names = set(subparsers.choices)
     assert command_names == {
-        "init",
         "register",
+        "upgrade",
         "unregister",
         "add",
         "update",
@@ -81,23 +81,55 @@ def test_help_surface_matches_v7():
     }
 
 
-def test_init_creates_json_config(isolated, capsys):
-    assert main(["init"]) == 0
-    assert paths.config_path().name == "config.json"
-    cfg = config.load_config()
-    assert cfg["version"] == 1
-    assert Path(cfg["home"]) == paths.skillhost_home()
-    assert "user_repos" in cfg
-    assert "projects" in cfg
-    assert cfg["agents"]["openclaw"]["user_dir"].endswith(".openclaw/skills")
-    assert cfg["agents"]["openclaw"]["project_dir"] == ""
-    assert cfg["agents"]["hermes"]["user_dir"].endswith(".hermes/skills")
-    assert cfg["agents"]["hermes"]["project_dir"] == ""
+
+def test_list_initializes_without_init(isolated, capsys):
+    assert not paths.config_path().exists()
+    assert main(["list"]) == 0
+    assert "No skills found." in capsys.readouterr().out
+
+
+def test_upgrade_uses_pipx_when_running_from_pipx_venv(monkeypatch):
+    monkeypatch.setattr(sys, "executable", "/home/user/.local/pipx/venvs/skillhost/bin/python")
+    monkeypatch.delenv("UV_TOOL_DIR", raising=False)
+    assert _upgrade_command() == ["pipx", "upgrade", "skillhost"]
+
+
+def test_upgrade_uses_uv_when_running_from_uv_tool_dir(monkeypatch, tmp_path):
+    tool_dir = tmp_path / "uv-tools"
+    executable = tool_dir / "skillhost" / "bin" / "python"
+    executable.parent.mkdir(parents=True)
+    executable.touch()
+    monkeypatch.setattr(sys, "executable", str(executable))
+    monkeypatch.setenv("UV_TOOL_DIR", str(tool_dir))
+    monkeypatch.delenv("PIPX_HOME", raising=False)
+    assert _upgrade_command() == ["uv", "tool", "upgrade", "skillhost"]
+
+
+def test_upgrade_falls_back_to_current_python_pip(monkeypatch):
+    monkeypatch.setattr(sys, "executable", "/opt/venvs/current/bin/python")
+    monkeypatch.delenv("PIPX_HOME", raising=False)
+    monkeypatch.delenv("UV_TOOL_DIR", raising=False)
+    assert _upgrade_command() == [sys.executable, "-m", "pip", "install", "--upgrade", "skillhost"]
+
+
+def test_upgrade_runs_detected_command(monkeypatch, capsys):
+    calls = []
+
+    class Result:
+        returncode = 0
+
+    def fake_run(command):
+        calls.append(command)
+        return Result()
+
+    monkeypatch.setattr("skillhost.cli._upgrade_command", lambda: ["pipx", "upgrade", "skillhost"])
+    monkeypatch.setattr("skillhost.cli.subprocess.run", fake_run)
+    assert main(["upgrade"]) == 0
+    assert calls == [["pipx", "upgrade", "skillhost"]]
     out = capsys.readouterr().out
-    assert "SkillHost initialized." in out
-    assert f"Home: {paths.skillhost_home()}" in out
-    assert f"Config: {paths.config_path()}" in out
-    assert "skillhost add <skill-git-repo>" in out
+    assert "Upgrading SkillHost with:" in out
+    assert "pipx upgrade skillhost" in out
+    assert "SkillHost upgraded." in out
 
 
 def test_register_and_unregister_project(isolated):
@@ -266,6 +298,36 @@ def test_update_unlinks_old_skill_names_before_relinking(isolated):
     assert manifest["links"]["new-skill"]["repo"] == "repo-rename"
 
 
+def test_update_interactive_relinks_selected_agents_only(isolated, monkeypatch):
+    repo = make_repo(isolated, "repo-update-selected", "old-selected")
+    assert main(["add", str(repo), "--name", "repo-update-selected"]) == 0
+
+    codex_target = isolated / "home" / ".agents" / "skills"
+    claude_target = isolated / "home" / ".claude" / "skills"
+    opencode_target = isolated / "home" / ".config" / "opencode" / "skills"
+    assert (codex_target / "old-selected").is_symlink()
+    assert (claude_target / "old-selected").is_symlink()
+    assert (opencode_target / "old-selected").is_symlink()
+
+    git(["mv", "old-selected", "new-selected"], repo)
+    (repo / "new-selected" / "SKILL.md").write_text("---\nname: new-selected\n---\n", encoding="utf-8")
+    git(["add", "."], repo)
+    git(["commit", "-m", "rename skill"], repo)
+
+    monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+    monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+    monkeypatch.setattr("builtins.input", lambda _prompt: "1,3")
+
+    assert main(["update", "repo-update-selected"]) == 0
+
+    assert not (codex_target / "old-selected").exists()
+    assert (codex_target / "new-selected").is_symlink()
+    assert (claude_target / "old-selected").is_symlink()
+    assert not (claude_target / "new-selected").exists()
+    assert not (opencode_target / "old-selected").exists()
+    assert (opencode_target / "new-selected").is_symlink()
+
+
 def test_add_interactive_links_selected_agents(isolated, monkeypatch):
     monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
     monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
@@ -360,15 +422,12 @@ def test_project_relink_validates_current_git_project(isolated, monkeypatch, cap
 
 
 def test_unlink_requires_explicit_all(isolated, capsys):
-    assert main(["init"]) == 0
     code = main(["unlink"])
     assert code == 1
     assert "Refusing to unlink all links implicitly. Use --all." in capsys.readouterr().err
 
 
 def test_config_prints_absolute_path(isolated, capsys):
-    assert main(["init"]) == 0
-    capsys.readouterr()
     assert main(["config"]) == 0
     assert capsys.readouterr().out.strip() == str(paths.config_path())
 
