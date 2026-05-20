@@ -1,0 +1,3 @@
+display_name: Upload PyPI Release
+short_description: Safe PyPI publish from a token file
+default_prompt: Publish this Python package to PyPI. I will provide the token txt file path first.
