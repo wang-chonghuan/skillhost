@@ -3,10 +3,10 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: light;
-  background: #f8fafc;
-  color: #0f172a;
-  font-family: 'DM Sans', Inter, ui-sans-serif, system-ui, sans-serif;
+  color-scheme: dark;
+  background: #020617;
+  color: #f8fafc;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -22,10 +22,16 @@ body {
   min-height: 100vh;
   margin: 0;
   background:
-    radial-gradient(circle at 20% 10%, rgba(14, 165, 233, 0.18), transparent 32rem),
-    radial-gradient(circle at 82% 18%, rgba(37, 99, 235, 0.12), transparent 30rem),
-    linear-gradient(180deg, #f0f9ff 0%, #f8fafc 46%, #ffffff 100%);
-  color: #0f172a;
+    radial-gradient(circle at 50% -10%, rgba(34, 211, 238, 0.16), transparent 34rem),
+    radial-gradient(circle at 85% 10%, rgba(99, 102, 241, 0.14), transparent 30rem),
+    #020617;
+}
+
+html:not(.dark) body {
+  background:
+    radial-gradient(circle at 50% -10%, rgba(14, 165, 233, 0.16), transparent 34rem),
+    radial-gradient(circle at 85% 10%, rgba(99, 102, 241, 0.10), transparent 30rem),
+    #f8fafc;
 }
 
 body::before {
@@ -35,17 +41,10 @@ body::before {
   pointer-events: none;
   content: '';
   background-image:
-    linear-gradient(rgba(14, 165, 233, 0.07) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(14, 165, 233, 0.07) 1px, transparent 1px);
+    linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
   background-size: 72px 72px;
-  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.30), transparent 72%);
-}
-
-h1,
-h2,
-h3,
-.font-display {
-  font-family: 'Space Grotesk', Inter, ui-sans-serif, system-ui, sans-serif;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.40), transparent 70%);
 }
 
 a {
@@ -54,25 +53,12 @@ a {
 }
 
 :focus-visible {
-  outline: 2px solid rgba(14, 165, 233, 0.95);
+  outline: 2px solid rgba(34, 211, 238, 0.95);
   outline-offset: 4px;
 }
 
 ::selection {
-  background: rgba(14, 165, 233, 0.20);
-}
-
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-
-  .surface-card {
-    border: 1px solid #dcebfa;
-    background: rgba(255, 255, 255, 0.82);
-    box-shadow: 0 24px 70px rgba(15, 23, 42, 0.08);
-    backdrop-filter: blur(18px);
-  }
+  background: rgba(34, 211, 238, 0.24);
 }
 
 @media (prefers-reduced-motion: reduce) {

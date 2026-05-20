@@ -1,14 +1,21 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Skillhost links Agent Skills from Git repositories into Codex, Claude Code, and OpenCode using symlinks and safe manifests."
+      content="SkillHost keeps AI agent skills in Git and links them into Codex, Claude Code, OpenCode, and future agents."
     />
-    <meta name="theme-color" content="#05060A" />
-    <title>Skillhost — Agent skills, distributed with Git.</title>
+    <meta name="theme-color" content="#020617" />
+    <script>
+      try {
+        document.documentElement.classList.toggle('dark', localStorage.getItem('theme') !== 'light');
+      } catch (_) {
+        document.documentElement.classList.add('dark');
+      }
+    </script>
+    <title>SkillHost — Shared skills for every AI agent.</title>
   </head>
   <body>
     <div id="root"></div>
