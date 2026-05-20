@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "skillhost"
-version = "0.1.4"
+version = "0.1.5"
 description = "Install Agent Skills from Git repositories using symlinks"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -36,6 +36,9 @@ packages = ["src/skillhost"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+markers = [
+  "real_e2e: tests that exercise the real installed skillhost command, real HOME, and real remote repositories",
+]
 
 [tool.ruff]
 line-length = 120

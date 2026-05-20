@@ -2,6 +2,7 @@ import pytest
 
 from skillhost import __version__
 from skillhost.cli import build_parser, main
+from skillhost.git_utils import clone_url
 
 
 def assert_exits(argv: list[str], code: int) -> None:
@@ -42,3 +43,10 @@ def test_root_command_list_has_v7_commands():
         "doctor",
         "config",
     } <= command_names
+
+
+def test_clone_url_rewrites_github_https_to_ssh():
+    assert clone_url("https://github.com/org/repo") == "git@github.com:org/repo.git"
+    assert clone_url("https://github.com/org/repo.git") == "git@github.com:org/repo.git"
+    assert clone_url("git@github.com:org/repo.git") == "git@github.com:org/repo.git"
+    assert clone_url("https://gitlab.com/org/repo.git") == "https://gitlab.com/org/repo.git"

@@ -33,13 +33,15 @@ skillhost [-h] [--version]
 
   add <skill-git-repo> [--project <name>] [--name <repo-name>]
 
-  update [repo-name] [--project <name>] [--agent {codex,claude,opencode}] [--all]
+  update [repo-name] [--project <name>] [--agent {codex,claude,opencode,openclaw,hermes}] [--all]
 
   remove <repo-name> [--project <name>]
 
-  relink [repo-name] [--project <name>] [--agent {codex,claude,opencode}] [--all]
+  relink [repo-name] [--project <name>] [--agent {codex,claude,opencode,openclaw,hermes}] [--all]
 
-  unlink [repo-name] [--project <name>] [--agent {codex,claude,opencode}] [--all]
+  unlink [repo-name] [--project <name>] [--agent {codex,claude,opencode,openclaw,hermes}] [--all]
+
+  clean
 
   list [--project <name>]
   projects
@@ -76,7 +78,7 @@ skillhost doctor --project nsdk
 skillhost remove nsdk-skills --project nsdk
 ```
 
-`--all` means all skill repositories in the selected scope. For `update`, `relink`, `list`, and `doctor`, omitting `repo-name` already means all repositories in the selected scope. For `unlink`, omitting both `repo-name` and `--all` is refused to avoid accidental bulk unlinking.
+`--all` means all skill repositories in the selected scope. For `update`, `relink`, `list`, and `doctor`, omitting `repo-name` already means all repositories in the selected scope. For `relink`, omitting `repo-name` also opens the target selector in an interactive terminal unless `--agent` is provided. For `unlink`, omitting both `repo-name` and `--all` is refused to avoid accidental bulk unlinking.
 
 ## State layout
 
@@ -119,6 +121,8 @@ Built-in agents are initialized in config:
 codex    user: ~/.agents/skills                 project: .agents/skills
 claude   user: ~/.claude/skills                 project: .claude/skills
 opencode user: ~/.config/opencode/skills        project: .opencode/skills
+openclaw user: ~/.openclaw/skills               project: —
+hermes   user: ~/.hermes/skills                 project: —
 ```
 
 Register another agent target:
@@ -128,6 +132,8 @@ skillhost register --agent cursor --user-dir ~/.cursor/skills --project-dir .cur
 skillhost agents
 skillhost unregister --agent cursor
 ```
+
+OpenClaw and Hermes Agent are user-level targets only; SkillHost intentionally does not create project-level links for them. Claude Cowork currently exposes personal skills through its UI rather than a documented stable local user skills directory, so SkillHost does not link to Claude Cowork yet.
 
 Agent registration updates config only. It does not link automatically; run `skillhost relink` when you want to refresh links.
 
@@ -140,10 +146,11 @@ skillhost list
 skillhost update
 skillhost relink
 skillhost unlink company-skills --agent codex
+skillhost clean
 skillhost remove company-skills
 ```
 
-`add` clones the skill repository into `~/.skillhost/user_repos/<repo-name>`, records it in `config.json`, discovers skills, and then prompts where to link the added skills: Codex, Claude Code, OpenCode, or All. In non-interactive shells it keeps the safe previous behavior and relinks all enabled user-level agent targets when possible.
+`add` clones the skill repository into `~/.skillhost/user_repos/<repo-name>`, records it in `config.json`, discovers skills, and then prompts where to link the added skills: Codex, Claude Code, OpenCode, OpenClaw, Hermes Agent, or All. In non-interactive shells it keeps the safe previous behavior and relinks all enabled user-level agent targets when possible.
 
 Use `--name` when you want the local repo name to differ from the Git URL basename:
 
@@ -204,25 +211,14 @@ Removes the config entry only. It does not delete user-owned files and does not 
 skillhost add <skill-git-repo> [--project <name>] [--name <repo-name>]
 ```
 
-Clones a skill repository into the selected scope and records it in config. Without `--name`, the repo name is derived from the Git URL basename with `.git` stripped.
+Clones a skill repository into the selected scope and records it in config. Without `--name`, the repo name is derived from the Git URL basename with `.git` stripped. GitHub HTTPS URLs are cloned through SSH automatically, so `https://github.com/org/repo` and `git@github.com:org/repo.git` both work for users with SSH access. If no skills are discovered, `add` leaves config and repo storage unchanged and exits with an error. On success, it prints how many skills were added and suggests `skillhost list`.
 
-After a successful interactive `add`, SkillHost prompts where to link the newly added skills:
-
-```text
-Link added skills to:
-  1. Codex
-  2. Claude Code
-  3. OpenCode
-  4. All
-Choose targets (comma-separated, default All):
-```
-
-Enter one number, multiple comma-separated numbers such as `1,3`, or `4`/blank for all. Non-interactive `add` defaults to all enabled targets.
+After a successful interactive `add`, SkillHost opens a small terminal selector for where to link the newly added skills. Use ↑/↓ to move, Space to select or unselect, and Enter to confirm. Leaving nothing selected defaults to all enabled targets. If the terminal cannot run the selector, SkillHost falls back to a text prompt where you can enter one number, multiple comma-separated numbers such as `1,3`, or `all`/blank for all. Non-interactive `add` defaults to all enabled targets.
 
 ### `skillhost update`
 
 ```sh
-skillhost update [repo-name] [--project <name>] [--agent {codex,claude,opencode}] [--all]
+skillhost update [repo-name] [--project <name>] [--agent {codex,claude,opencode,openclaw,hermes}] [--all]
 ```
 
 Before updating, removes existing SkillHost-managed links for the selected repository or repositories so renamed or deleted skill directories do not leave stale symlinks behind. Then runs `git pull --ff-only` for one repository or all repositories in the selected scope. It does not merge or rebase. After updating, it relinks the selected scope when possible.
@@ -233,20 +229,20 @@ Before updating, removes existing SkillHost-managed links for the selected repos
 skillhost remove <repo-name> [--project <name>]
 ```
 
-Unlinks SkillHost-managed symlinks for that repo where safely discoverable, deletes the cloned repo under `~/.skillhost`, and removes the repo entry from config. It does not support `--all`.
+Unlinks SkillHost-managed symlinks for that repo where safely discoverable, deletes the cloned repo under `~/.skillhost`, and removes the repo entry from config. The repo argument can be the local repo name or a Git URL such as `https://github.com/org/repo` / `git@github.com:org/repo.git`; URLs are resolved to their repo basename. It does not support `--all`.
 
 ### `skillhost relink`
 
 ```sh
-skillhost relink [repo-name] [--project <name>] [--agent {codex,claude,opencode}] [--all]
+skillhost relink [repo-name] [--project <name>] [--agent {codex,claude,opencode,openclaw,hermes}] [--all]
 ```
 
-Creates or updates SkillHost-managed symlinks for one repo or all repos in the selected scope. Existing unmanaged files or directories are skipped.
+Creates or updates SkillHost-managed symlinks for one repo or all repos in the selected scope. Omitting `repo-name` means all registered repos in the selected scope; for example, `skillhost relink` refreshes every user-level repo, and `skillhost relink --project nsdk` refreshes every repo registered under project `nsdk`. Existing unmanaged files or directories are skipped. In an interactive terminal, `relink` uses the same target selector as `add` unless `--agent` is provided; non-interactive `relink` defaults to all enabled targets.
 
 ### `skillhost unlink`
 
 ```sh
-skillhost unlink [repo-name] [--project <name>] [--agent {codex,claude,opencode}] [--all]
+skillhost unlink [repo-name] [--project <name>] [--agent {codex,claude,opencode,openclaw,hermes}] [--all]
 ```
 
 Removes only symlinks recorded in `.skillhost-links.json`. To unlink all repos in a scope, pass `--all` explicitly:
@@ -255,6 +251,14 @@ Removes only symlinks recorded in `.skillhost-links.json`. To unlink all repos i
 skillhost unlink --all
 skillhost unlink --project nsdk --all
 ```
+
+### `skillhost clean`
+
+```sh
+skillhost clean
+```
+
+Scans all enabled user-level agent skill directories and removes broken symlinks. If you run it from inside a Git repository, it also scans that repo root's supported project-level agent skill directories, such as `.agents/skills`, `.claude/skills`, and `.opencode/skills`. If a broken symlink or missing destination is recorded in `.skillhost-links.json`, `clean` also removes the stale manifest entry. OpenClaw and Hermes are user-level-only targets, so they are not cleaned as project-level directories.
 
 ### `skillhost list`, `projects`, `agents`, `doctor`, `config`
 

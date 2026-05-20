@@ -1,0 +1,18 @@
+{
+  "github_owner": "wang-chonghuan",
+  "project_repos": {
+    "project-a": "https://github.com/wang-chonghuan/project-a.git",
+    "project-b": "https://github.com/wang-chonghuan/project-b.git"
+  },
+  "skill_repos": {
+    "skill-collection-study": "https://github.com/wang-chonghuan/skill-collection-study.git",
+    "skill-collection-work": "https://github.com/wang-chonghuan/skill-collection-work.git",
+    "skill-collection-life": "https://github.com/wang-chonghuan/skill-collection-life.git"
+  },
+  "expected_skills": {
+    "skill-collection-study": ["study-plan", "paper-notes", "flashcards"],
+    "skill-collection-work": ["meeting-brief", "pr-summary", "incident-update"],
+    "skill-collection-life": ["weekly-plan", "trip-checklist", "habit-review"]
+  },
+  "project_skill_repo": "skill-collection-work"
+}

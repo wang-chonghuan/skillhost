@@ -6,42 +6,21 @@ import json
 from pathlib import Path
 from typing import Any
 
-from .agents import AGENTS
+from . import agents as agents_module
 from .errors import SkillhostError
 from .git_utils import get_origin_url, is_git_repo, normalize_git_url
 from .paths import config_path, ensure_base_dirs, project_repos_dir, skillhost_home, user_repos_dir
 
 
 def _default_agents() -> dict[str, dict[str, Any]]:
-    home = Path.home()
-    data: dict[str, dict[str, Any]] = {
-        "codex": {
+    data: dict[str, dict[str, Any]] = {}
+    for name, agent in agents_module._default_agent_map().items():
+        data[name] = {
             "enabled": True,
-            "user_dir": str((home / ".agents" / "skills").resolve()),
-            "project_dir": ".agents/skills",
+            "user_dir": str(agent.user_target.expanduser().resolve()),
+            "project_dir": str(agent.project_target) if agent.project_target else "",
             "builtin": True,
-        },
-        "claude": {
-            "enabled": True,
-            "user_dir": str((home / ".claude" / "skills").resolve()),
-            "project_dir": ".claude/skills",
-            "builtin": True,
-        },
-        "opencode": {
-            "enabled": True,
-            "user_dir": str((home / ".config" / "opencode" / "skills").resolve()),
-            "project_dir": ".opencode/skills",
-            "builtin": True,
-        },
-    }
-    for name, agent in AGENTS.items():
-        if name not in data:
-            data[name] = {
-                "enabled": True,
-                "user_dir": str(agent.user_target.expanduser().resolve()),
-                "project_dir": str(agent.project_target),
-                "builtin": True,
-            }
+        }
     return data
 
 

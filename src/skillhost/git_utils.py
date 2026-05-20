@@ -23,11 +23,24 @@ def run_git(args: list[str], cwd: str | Path | None = None) -> subprocess.Comple
         raise GitError(f"git command failed: {' '.join(cmd)}\n{detail}") from exc
 
 
+def clone_url(url: str) -> str:
+    """Return the URL used for cloning, preferring SSH for GitHub HTTPS URLs."""
+    raw = url.strip()
+    parsed = urlparse(raw)
+    if parsed.scheme in {"http", "https"} and (parsed.hostname or "").lower() == "github.com":
+        path = parsed.path.strip("/")
+        if path.endswith(".git"):
+            path = path[:-4]
+        if path and "/" in path:
+            return f"git@github.com:{path}.git"
+    return raw
+
+
 def clone_repo(url: str, dest: str | Path, branch: str | None = None) -> None:
     args = ["clone"]
     if branch:
         args.extend(["--branch", branch])
-    args.extend([url, str(dest)])
+    args.extend([clone_url(url), str(dest)])
     run_git(args)
 
 

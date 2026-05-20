@@ -2,6 +2,11 @@
 
 Behavioral guidelines to reduce common LLM coding mistakes. These five points are the karpathy-guidelines used by this project; merge them with project-specific instructions as needed.
 
+
+## Language Rules
+
+Interactive replies to the user may be written in Chinese. Anything that may be committed to Git must be written in English, including code, comments, website content, documentation, tests, configuration text, commit messages, and repository files.
+
 **Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
 
 ## 0. Default Response Style

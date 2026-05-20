@@ -3,16 +3,19 @@ from __future__ import annotations
 import argparse
 import shutil
 import sys
+import tempfile
+import termios
+import tty
 from pathlib import Path
 
 from . import __version__, config, paths
 from .discovery import Skill, discover_repos
 from .errors import GIT_ERROR, INTERNAL_ERROR, USER_ERROR, GitError, SkillhostError
-from .git_utils import clone_repo, derive_repo_name, is_git_repo, pull_ff_only
-from .linking import MANIFEST, link_skills, load_manifest, unlink_scope
+from .git_utils import clone_repo, derive_repo_name, get_repo_root, is_git_repo, pull_ff_only
+from .linking import MANIFEST, link_skills, load_manifest, save_manifest, unlink_scope
 from .projects import current_project_context
 
-AGENT_CHOICES = ["codex", "claude", "opencode"]
+AGENT_CHOICES = ["codex", "claude", "opencode", "openclaw", "hermes"]
 
 
 def _is_interactive() -> bool:
@@ -24,17 +27,14 @@ def _format_agent_label(agent_name: str) -> str:
         "codex": "Codex",
         "claude": "Claude Code",
         "opencode": "OpenCode",
+        "openclaw": "OpenClaw",
+        "hermes": "Hermes Agent",
     }
     return labels.get(agent_name, agent_name)
 
 
-def _prompt_add_agents() -> list[str] | None:
-    print("Link added skills to:")
-    for index, agent_name in enumerate(AGENT_CHOICES, start=1):
-        print(f"  {index}. {_format_agent_label(agent_name)}")
-    print(f"  {len(AGENT_CHOICES) + 1}. All")
-    prompt = "Choose targets (comma-separated, default All): "
-    value = input(prompt).strip().lower()
+def _parse_add_agent_choice(value: str) -> list[str] | None:
+    value = value.strip().lower()
     if not value:
         return None
     all_tokens = {"all", "a", str(len(AGENT_CHOICES) + 1)}
@@ -51,7 +51,13 @@ def _prompt_add_agents() -> list[str] | None:
             else:
                 raise SkillhostError(f"Invalid add target choice: {token}")
         else:
-            aliases = {"claude-code": "claude", "claudecode": "claude", "open-code": "opencode"}
+            aliases = {
+                "claude-code": "claude",
+                "claudecode": "claude",
+                "open-code": "opencode",
+                "hermes-agent": "hermes",
+                "hermesagent": "hermes",
+            }
             agent_name = aliases.get(token, token)
             if agent_name not in AGENT_CHOICES:
                 raise SkillhostError(f"Invalid add target choice: {token}")
@@ -60,14 +66,114 @@ def _prompt_add_agents() -> list[str] | None:
     return selected
 
 
-def _relink_selected_add_targets(scope: str, project: str | None, repo_name: str) -> int:
-    agent_names = _prompt_add_agents() if _is_interactive() else None
+def _prompt_add_agents_text() -> list[str] | None:
+    print("Link added skills to:")
+    for index, agent_name in enumerate(AGENT_CHOICES, start=1):
+        print(f"  {index}. {_format_agent_label(agent_name)}")
+    print(f"  {len(AGENT_CHOICES) + 1}. All")
+    try:
+        value = input("Choose targets (comma-separated, default All): ")
+    except (EOFError, OSError):
+        return None
+    return _parse_add_agent_choice(value)
+
+
+def _prompt_add_agents_tui() -> list[str] | None:
+    options = [*AGENT_CHOICES, "all"]
+    cursor = 0
+    selected: set[str] = set()
+    line_count = 0
+
+    def checked(option: str) -> bool:
+        if option == "all":
+            return len(selected) == len(AGENT_CHOICES)
+        return option in selected
+
+    def render() -> None:
+        nonlocal line_count
+        if line_count:
+            sys.stdout.write(f"\x1b[{line_count}A")
+        lines = ["\x1b[1;36mLink added skills to:\x1b[0m"]
+        for index, option in enumerate(options):
+            active = index == cursor
+            pointer = "❯" if active else " "
+            mark = "◉" if checked(option) else "○"
+            label = "All" if option == "all" else _format_agent_label(option)
+            color = "\x1b[1;32m" if active else "\x1b[37m"
+            lines.append(f"{color}{pointer} {mark} {label}\x1b[0m")
+        lines.append("\x1b[2m↑/↓ move · Space select · Enter confirm (none = All)\x1b[0m")
+        for line in lines:
+            sys.stdout.write("\r\x1b[2K" + line + "\r\n")
+        sys.stdout.flush()
+        line_count = len(lines)
+
+    fd = sys.stdin.fileno()
+    old_settings = termios.tcgetattr(fd)
+    try:
+        tty.setraw(fd)
+        sys.stdout.write("\x1b[?25l")
+        while True:
+            render()
+            char = sys.stdin.read(1)
+            if char == "\x03":
+                raise KeyboardInterrupt
+            if char in {"\r", "\n"}:
+                break
+            if char == " ":
+                option = options[cursor]
+                if option == "all":
+                    if len(selected) == len(AGENT_CHOICES):
+                        selected.clear()
+                    else:
+                        selected = set(AGENT_CHOICES)
+                elif option in selected:
+                    selected.remove(option)
+                else:
+                    selected.add(option)
+            elif char == "\x1b":
+                seq = sys.stdin.read(2)
+                if seq == "[A":
+                    cursor = (cursor - 1) % len(options)
+                elif seq == "[B":
+                    cursor = (cursor + 1) % len(options)
+        sys.stdout.write("\r\x1b[?25h")
+        sys.stdout.flush()
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+        sys.stdout.write("\r\x1b[?25h")
+        sys.stdout.flush()
+
+    if not selected or len(selected) == len(AGENT_CHOICES):
+        return None
+    return [agent for agent in AGENT_CHOICES if agent in selected]
+
+
+def _prompt_add_agents() -> list[str] | None:
+    if not _is_interactive():
+        return _prompt_add_agents_text()
+    try:
+        return _prompt_add_agents_tui()
+    except (termios.error, OSError):
+        return _prompt_add_agents_text()
+
+
+def _select_add_targets() -> list[str] | None:
+    return _prompt_add_agents()
+
+
+def _relink_add_targets(scope: str, project: str | None, repo_name: str, agent_names: list[str] | None) -> int:
     if agent_names is None:
         return _relink_selected(scope, project, repo_name, None)
     failures = 0
     for agent_name in agent_names:
         failures |= _relink_selected(scope, project, repo_name, agent_name)
     return USER_ERROR if failures else 0
+
+
+def _print_add_summary(skill_count: int) -> None:
+    label = "skill" if skill_count == 1 else "skills"
+    print(f"{skill_count} {label} added.")
+    print("Run `skillhost list` to view installed skills.")
 
 
 def _unlink_repo_links(scope: str, project: str | None, repo_name: str, agent_name: str | None) -> int:
@@ -138,6 +244,13 @@ def _require_repo_name(name: str | None, command: str) -> str:
     if not name:
         raise SkillhostError(f"{command} requires <repo-name>.")
     return name
+
+
+def _repo_name_arg(value: str | None, command: str) -> str:
+    raw = _require_repo_name(value, command)
+    if "://" in raw or raw.startswith("git@") or raw.endswith(".git"):
+        return derive_repo_name(raw)
+    return raw
 
 
 def _print_skills(skills: list[Skill]) -> None:
@@ -232,17 +345,32 @@ def cmd_add(args: argparse.Namespace) -> int:
     dest = base_dir / repo_name
     if dest.exists():
         raise SkillhostError(f"Clone target already exists: {dest}")
-    clone_repo(args.skill_git_repo, dest)
+
+    base_dir.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix=f".{repo_name}-", dir=base_dir) as tmp:
+        tmp_dest = Path(tmp) / repo_name
+        clone_repo(args.skill_git_repo, tmp_dest)
+        skills = discover_repos(Path(tmp), scope, project)
+        if not skills:
+            raise SkillhostError("No skills found in repo; nothing was added.")
+        agent_names = _select_add_targets()
+        shutil.move(str(tmp_dest), dest)
+
     config.register_repo(scope, repo_name, args.skill_git_repo, dest, project)
     print(f"Added repo '{repo_name}'.")
     if scope == "user":
-        return _relink_selected_add_targets(scope, project, repo_name)
+        code = _relink_add_targets(scope, project, repo_name, agent_names)
+        _print_add_summary(len(skills))
+        return code
     try:
-        return _relink_selected_add_targets(scope, project, repo_name)
+        code = _relink_add_targets(scope, project, repo_name, agent_names)
+        _print_add_summary(len(skills))
+        return code
     except SkillhostError:
         print(f"Added project skill repo for {project}.")
         print("Run inside the project checkout:")
         print(f"  skillhost relink --project {project}")
+        _print_add_summary(len(skills))
         return 0
 
 
@@ -282,7 +410,7 @@ def cmd_update(args: argparse.Namespace) -> int:
 
 def cmd_remove(args: argparse.Namespace) -> int:
     scope, base_dir, project = _selected_scope(args.project)
-    name = _require_repo_name(args.repo_name, "remove")
+    name = _repo_name_arg(args.repo_name, "remove")
     if name not in _all_repo_names(scope, project):
         raise SkillhostError(f"Repo not found in selected scope: {name}")
     removed = 0
@@ -303,7 +431,15 @@ def cmd_remove(args: argparse.Namespace) -> int:
 
 def cmd_relink(args: argparse.Namespace) -> int:
     scope, _base_dir, project = _selected_scope(args.project)
-    return _relink_selected(scope, project, args.repo_name, args.agent)
+    if args.agent:
+        return _relink_selected(scope, project, args.repo_name, args.agent)
+    agent_names = _select_add_targets()
+    if agent_names is None:
+        return _relink_selected(scope, project, args.repo_name, None)
+    failures = 0
+    for agent_name in agent_names:
+        failures |= _relink_selected(scope, project, args.repo_name, agent_name)
+    return USER_ERROR if failures else 0
 
 
 def cmd_unlink(args: argparse.Namespace) -> int:
@@ -314,6 +450,76 @@ def cmd_unlink(args: argparse.Namespace) -> int:
     for agent_name, target in _target_entries(scope, project, args.agent):
         removed += unlink_scope({agent_name: target}, scope, project=project, repo_name=args.repo_name)
     print(f"Unlinked {removed} skill(s).")
+    return 0
+
+
+def _clean_target(agent_name: str, target: Path, scope: str) -> tuple[int, int]:
+    removed = 0
+    stale_records = 0
+    if not target.exists():
+        return removed, stale_records
+
+    manifest = load_manifest(target)
+    changed = False
+
+    for child in target.iterdir():
+        if child.is_symlink() and not child.exists():
+            label = f"{agent_name}:{child.name}" if scope == "user" else f"project:{agent_name}:{child.name}"
+            print(f"Remove broken symlink {label}")
+            child.unlink()
+            removed += 1
+            if child.name in manifest.get("links", {}):
+                manifest["links"].pop(child.name, None)
+                changed = True
+
+    for name, record in list(manifest.get("links", {}).items()):
+        if record.get("scope") != scope:
+            continue
+        dest = target / name
+        source = record.get("source")
+        if not dest.exists() and not dest.is_symlink():
+            label = f"{agent_name}:{name}" if scope == "user" else f"project:{agent_name}:{name}"
+            print(f"Remove stale manifest entry {label}")
+            manifest["links"].pop(name, None)
+            stale_records += 1
+            changed = True
+        elif dest.is_symlink() and source and not Path(source).exists():
+            label = f"{agent_name}:{name}" if scope == "user" else f"project:{agent_name}:{name}"
+            print(f"Remove broken symlink {label}")
+            dest.unlink()
+            manifest["links"].pop(name, None)
+            removed += 1
+            changed = True
+
+    if changed:
+        save_manifest(target, manifest)
+    return removed, stale_records
+
+
+def _project_clean_targets() -> list[tuple[str, Path, str]]:
+    if not is_git_repo(Path.cwd()):
+        return []
+    root = get_repo_root(Path.cwd())
+    targets: list[tuple[str, Path, str]] = []
+    for name, data in config.get_registered_agents().items():
+        if not data.get("enabled", True):
+            continue
+        project_dir = data.get("project_dir")
+        if project_dir:
+            targets.append((name, root / project_dir, "project"))
+    return targets
+
+
+def cmd_clean(_args: argparse.Namespace) -> int:
+    removed = 0
+    stale_records = 0
+    clean_targets = [(agent_name, target, "user") for agent_name, target in _target_entries("user", None, None)]
+    clean_targets.extend(_project_clean_targets())
+    for agent_name, target, scope in clean_targets:
+        target_removed, target_stale = _clean_target(agent_name, target, scope)
+        removed += target_removed
+        stale_records += target_stale
+    print(f"Cleaned {removed} broken symlink(s) and {stale_records} stale manifest entrie(s).")
     return 0
 
 
@@ -438,6 +644,8 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("list")
     p.add_argument("--project")
     p.set_defaults(func=cmd_list)
+
+    sub.add_parser("clean").set_defaults(func=cmd_clean)
 
     sub.add_parser("projects").set_defaults(func=cmd_projects)
     sub.add_parser("agents").set_defaults(func=cmd_agents)

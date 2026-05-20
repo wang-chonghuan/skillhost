@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import importlib
+import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -39,6 +41,12 @@ def isolated(tmp_path, monkeypatch):
     return tmp_path
 
 
+def fixture_repo_url(repo_name: str) -> str:
+    fixture_path = Path(__file__).with_name("fixture_repos.json")
+    data = json.loads(fixture_path.read_text(encoding="utf-8"))
+    return data["skill_repos"][repo_name]
+
+
 def make_repo(base: Path, name: str = "repo", skill_name: str = "foo") -> Path:
     repo = base / name
     repo.mkdir()
@@ -69,6 +77,7 @@ def test_help_surface_matches_v7():
         "agents",
         "doctor",
         "config",
+        "clean",
     }
 
 
@@ -80,6 +89,10 @@ def test_init_creates_json_config(isolated, capsys):
     assert Path(cfg["home"]) == paths.skillhost_home()
     assert "user_repos" in cfg
     assert "projects" in cfg
+    assert cfg["agents"]["openclaw"]["user_dir"].endswith(".openclaw/skills")
+    assert cfg["agents"]["openclaw"]["project_dir"] == ""
+    assert cfg["agents"]["hermes"]["user_dir"].endswith(".hermes/skills")
+    assert cfg["agents"]["hermes"]["project_dir"] == ""
     out = capsys.readouterr().out
     assert "SkillHost initialized." in out
     assert f"Home: {paths.skillhost_home()}" in out
@@ -126,6 +139,112 @@ def test_add_list_relink_unlink_remove_user_scope(isolated):
     assert "repo-user" not in config.load_config()["user_repos"]
 
 
+
+
+def test_remove_accepts_git_url_as_repo_name(isolated):
+    repo = make_repo(isolated, "url-repo", "url-skill")
+    assert main(["add", str(repo), "--name", "skill-collection-study"]) == 0
+
+    assert main(["remove", fixture_repo_url("skill-collection-study")]) == 0
+
+    assert "skill-collection-study" not in config.load_config()["user_repos"]
+    assert not (paths.user_repos_dir() / "skill-collection-study").exists()
+
+
+
+
+def test_add_cancel_during_target_prompt_leaves_no_state(isolated, monkeypatch):
+    repo = make_repo(isolated, "repo-cancel", "cancel-skill")
+    monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+    monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+
+    def cancel():
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr("skillhost.cli._prompt_add_agents_tui", cancel)
+
+    assert main(["add", str(repo), "--name", "repo-cancel"]) == 1
+
+    assert "repo-cancel" not in config.load_config()["user_repos"]
+    assert not (paths.user_repos_dir() / "repo-cancel").exists()
+    assert not list(paths.user_repos_dir().glob(".repo-cancel-*"))
+
+
+def test_add_repo_with_no_skills_leaves_no_state(isolated, capsys):
+    repo = isolated / "empty-repo"
+    repo.mkdir()
+    git(["init", "-b", "main"], repo)
+    (repo / "README.md").write_text("# Empty\n", encoding="utf-8")
+    git(["add", "."], repo)
+    git(["commit", "-m", "init"], repo)
+
+    assert main(["add", str(repo), "--name", "empty-repo"]) == 1
+
+    cfg = config.load_config()
+    assert "empty-repo" not in cfg["user_repos"]
+    assert not (paths.user_repos_dir() / "empty-repo").exists()
+    assert not list(paths.user_repos_dir().glob(".empty-repo-*"))
+    assert "No skills found in repo; nothing was added." in capsys.readouterr().err
+
+
+def test_add_prints_skill_count_and_list_hint(isolated, capsys):
+    repo = make_repo(isolated, "repo-count", "counted")
+
+    assert main(["add", str(repo), "--name", "repo-count"]) == 0
+
+    out = capsys.readouterr().out
+    assert "1 skill added." in out
+    assert "Run `skillhost list` to view installed skills." in out
+
+
+def test_clean_removes_user_level_broken_symlinks_and_manifest_records(isolated, capsys):
+    repo = make_repo(isolated, "repo-clean", "to-clean")
+    assert main(["add", str(repo), "--name", "repo-clean"]) == 0
+    target = isolated / "home" / ".agents" / "skills"
+    link = target / "to-clean"
+    assert link.is_symlink()
+
+    shutil.rmtree(paths.user_repos_dir() / "repo-clean")
+
+    assert main(["clean"]) == 0
+
+    assert not link.exists()
+    assert not link.is_symlink()
+    manifest = load_manifest(target)
+    assert "to-clean" not in manifest["links"]
+    out = capsys.readouterr().out
+    assert "Remove broken symlink codex:to-clean" in out
+    assert "Cleaned 5 broken symlink(s)" in out
+
+
+def test_clean_also_removes_current_repo_project_level_broken_symlinks(isolated, monkeypatch, capsys):
+    project = make_repo(isolated, "repo-project-clean", "project-source")
+    monkeypatch.chdir(project)
+    target = project / ".agents" / "skills"
+    source = project / "missing-project-skill"
+    target.mkdir(parents=True)
+    (target / "broken-project").symlink_to(source, target_is_directory=True)
+
+    assert main(["clean"]) == 0
+
+    assert not (target / "broken-project").exists()
+    assert not (target / "broken-project").is_symlink()
+    out = capsys.readouterr().out
+    assert "Remove broken symlink project:codex:broken-project" in out
+    assert "Cleaned 1 broken symlink(s)" in out
+
+
+def test_clean_skips_user_only_agents_for_project_level(isolated, monkeypatch):
+    project = make_repo(isolated, "repo-project-user-only-clean", "project-source")
+    monkeypatch.chdir(project)
+    hermes_target = project / ".hermes" / "skills"
+    hermes_target.mkdir(parents=True)
+    (hermes_target / "broken-hermes-project").symlink_to(project / "missing", target_is_directory=True)
+
+    assert main(["clean"]) == 0
+
+    assert (hermes_target / "broken-hermes-project").is_symlink()
+
 def test_update_unlinks_old_skill_names_before_relinking(isolated):
     repo = make_repo(isolated, "repo-rename", "old-skill")
     assert main(["add", str(repo), "--name", "repo-rename"]) == 0
@@ -166,7 +285,7 @@ def test_add_interactive_links_selected_agents(isolated, monkeypatch):
 def test_add_interactive_all_choice_links_all_agents(isolated, monkeypatch):
     monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
     monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
-    monkeypatch.setattr("builtins.input", lambda _prompt: "4")
+    monkeypatch.setattr("builtins.input", lambda _prompt: "all")
     repo = make_repo(isolated, "repo-all", "allskill")
 
     assert main(["add", str(repo), "--name", "repo-all"]) == 0
@@ -174,6 +293,46 @@ def test_add_interactive_all_choice_links_all_agents(isolated, monkeypatch):
     assert (isolated / "home" / ".agents" / "skills" / "allskill").is_symlink()
     assert (isolated / "home" / ".claude" / "skills" / "allskill").is_symlink()
     assert (isolated / "home" / ".config" / "opencode" / "skills" / "allskill").is_symlink()
+    assert (isolated / "home" / ".openclaw" / "skills" / "allskill").is_symlink()
+    assert (isolated / "home" / ".hermes" / "skills" / "allskill").is_symlink()
+
+
+def test_relink_interactive_uses_add_target_selector(isolated, monkeypatch):
+    repo = make_repo(isolated, "repo-relink-selected", "relinked")
+    assert main(["add", str(repo), "--name", "repo-relink-selected"]) == 0
+    assert main(["unlink", "repo-relink-selected", "--agent", "claude"]) == 0
+    assert not (isolated / "home" / ".claude" / "skills" / "relinked").exists()
+
+    from skillhost.cli import _prompt_add_agents_text
+
+    monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+    monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+    monkeypatch.setattr("builtins.input", lambda _prompt: "2")
+    monkeypatch.setattr("skillhost.cli._prompt_add_agents_tui", lambda: _prompt_add_agents_text())
+
+    assert main(["relink", "repo-relink-selected"]) == 0
+
+    assert (isolated / "home" / ".claude" / "skills" / "relinked").is_symlink()
+
+
+def test_relink_openclaw_and_hermes_user_agents(isolated):
+    repo = make_repo(isolated, "repo-new-agents", "newagent")
+    assert main(["add", str(repo), "--name", "repo-new-agents"]) == 0
+
+    assert (isolated / "home" / ".openclaw" / "skills" / "newagent").is_symlink()
+    assert (isolated / "home" / ".hermes" / "skills" / "newagent").is_symlink()
+
+
+def test_project_relink_skips_user_only_agents(isolated, monkeypatch):
+    project_repo = make_repo(isolated, "project-user-only", "project-skill")
+    skill_repo = make_repo(isolated, "project-user-only-skills", "helper")
+    assert main(["register", "--project", "proj-user-only", "--git", str(project_repo)]) == 0
+    monkeypatch.chdir(project_repo)
+
+    assert main(["add", str(skill_repo), "--project", "proj-user-only", "--name", "proj-skills"]) == 0
+
+    assert not (project_repo / ".openclaw" / "skills" / "helper").exists()
+    assert not (project_repo / ".hermes" / "skills" / "helper").exists()
 
 
 def test_project_add_writes_nested_project_repos(isolated, monkeypatch, capsys):

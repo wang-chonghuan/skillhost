@@ -12,19 +12,26 @@ from .errors import SkillhostError
 class Agent:
     name: str
     user_target: Path
-    project_target: Path
+    project_target: Path | None = None
 
 
-AGENTS: dict[str, Agent] = {
-    "codex": Agent("codex", Path.home() / ".agents" / "skills", Path(".agents") / "skills"),
-    "claude": Agent("claude", Path.home() / ".claude" / "skills", Path(".claude") / "skills"),
-    "opencode": Agent(
-        "opencode",
-        Path.home() / ".config" / "opencode" / "skills",
-        Path(".opencode") / "skills",
-    ),
-}
-DEFAULT_AGENT_NAMES = ["codex", "claude", "opencode"]
+def _default_agent_map() -> dict[str, Agent]:
+    home = Path.home()
+    return {
+        "codex": Agent("codex", home / ".agents" / "skills", Path(".agents") / "skills"),
+        "claude": Agent("claude", home / ".claude" / "skills", Path(".claude") / "skills"),
+        "opencode": Agent(
+            "opencode",
+            home / ".config" / "opencode" / "skills",
+            Path(".opencode") / "skills",
+        ),
+        "openclaw": Agent("openclaw", home / ".openclaw" / "skills"),
+        "hermes": Agent("hermes", home / ".hermes" / "skills"),
+    }
+
+
+AGENTS: dict[str, Agent] = _default_agent_map()
+DEFAULT_AGENT_NAMES = ["codex", "claude", "opencode", "openclaw", "hermes"]
 
 
 def get_agents(names: list[str] | None = None) -> list[Agent]:

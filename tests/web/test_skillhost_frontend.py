@@ -62,19 +62,22 @@ class SkillhostFrontendV6AcceptanceTests(unittest.TestCase):
             self.assertIn(text, combined)
 
         forbidden = [
-            "skillhost link",
-            "skillhost project link",
-            "skillhost unlink",
-            "skillhost project unlink",
-            "skillhost remove",
-            "skillhost project remove",
-            "skillhost list",
-            "skillhost project list",
-            "skillhost doctor",
-            "skillhost project doctor",
-            "skillhost user add",
-            "skillhost user update",
-            "skillhost user link",
+            "skillhost " + suffix
+            for suffix in [
+                "link",
+                "project link",
+                "unlink",
+                "project unlink",
+                "remove",
+                "project remove",
+                "list",
+                "project list",
+                "doctor",
+                "project doctor",
+                "user " + "add",
+                "user " + "update",
+                "user " + "link",
+            ]
         ]
         for text in forbidden:
             self.assertNotIn(text, combined)
