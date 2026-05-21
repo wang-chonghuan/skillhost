@@ -1,8 +1,9 @@
 type HeaderProps = {
+  isDocsOpen: boolean;
   githubUrl: string;
+  linkedinUrl: string;
   pypiUrl: string;
-  copyState: string;
-  onCopyDocs: () => void;
+  onToggleDocs: () => void;
 };
 
 function GitHubIcon() {
@@ -22,16 +23,25 @@ function PackageIcon() {
   );
 }
 
-function CopyIcon() {
+function LinkedInIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-      <rect x="9" y="9" width="11" height="11" rx="2" />
-      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden="true">
+      <path d="M20.45 20.45h-3.56v-5.58c0-1.33-.02-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.95v5.67H9.34V8.98h3.42v1.57h.05a3.75 3.75 0 0 1 3.37-1.85c3.61 0 4.27 2.37 4.27 5.46v6.29ZM5.33 7.41a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12Zm1.78 13.04H3.55V8.98h3.56v11.47ZM22.23 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.46c.98 0 1.77-.77 1.77-1.72V1.72C24 .77 23.21 0 22.23 0Z" />
     </svg>
   );
 }
 
-export function Header({ githubUrl, pypiUrl, copyState, onCopyDocs }: HeaderProps) {
+function DocsIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+      <path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15Z" />
+      <path d="M8 7h8M8 11h8" />
+    </svg>
+  );
+}
+
+export function Header({ isDocsOpen, githubUrl, linkedinUrl, pypiUrl, onToggleDocs }: HeaderProps) {
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-slate-200/80 bg-white/80 backdrop-blur-xl dark:border-cyan-300/10 dark:bg-black/80">
       <div className="mx-auto flex h-16 w-full max-w-none items-center justify-between px-3 sm:px-4 lg:max-w-5xl lg:px-6">
@@ -44,11 +54,11 @@ export function Header({ githubUrl, pypiUrl, copyState, onCopyDocs }: HeaderProp
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
           <button
             type="button"
-            onClick={onCopyDocs}
+            onClick={onToggleDocs}
             className="inline-flex h-10 items-center gap-2 rounded-full border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-cyan-300/10 dark:bg-slate-950/80 dark:text-slate-100 dark:hover:bg-cyan-950/50"
           >
-            <CopyIcon />
-            <span className="hidden sm:inline">{copyState || 'Copy docs'}</span>
+            <DocsIcon />
+            <span className="hidden sm:inline">{isDocsOpen ? 'Home' : 'Docs'}</span>
           </button>
           <a
             href={githubUrl}
@@ -57,6 +67,14 @@ export function Header({ githubUrl, pypiUrl, copyState, onCopyDocs }: HeaderProp
             rel="noreferrer"
           >
             <GitHubIcon />
+          </a>
+          <a
+            href={linkedinUrl}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 dark:border-cyan-300/10 dark:bg-slate-950/80 dark:text-slate-100 dark:hover:bg-cyan-950/50"
+            aria-label="View Chonghuan Wang on LinkedIn"
+            rel="noreferrer"
+          >
+            <LinkedInIcon />
           </a>
           <a
             href={pypiUrl}
