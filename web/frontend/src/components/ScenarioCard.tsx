@@ -12,7 +12,7 @@ type ScenarioCardProps = {
 
 export function ScenarioCard({ title, children, commands, afterTitle, afterCommands, targets, note }: ScenarioCardProps) {
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white/80 p-6 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/[0.04] sm:p-8" aria-labelledby={title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}
+    <section className="max-w-full overflow-hidden rounded-3xl border border-slate-200 bg-white/80 p-6 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/[0.04] sm:p-8" aria-labelledby={title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}
     >
       <h2 id={title.toLowerCase().replace(/[^a-z0-9]+/g, '-')} className="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">
         {title}
@@ -30,7 +30,7 @@ export function ScenarioCard({ title, children, commands, afterTitle, afterComma
           {targets.map((target) => (
             <div key={target.label} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/[0.035]">
               <dt className="font-semibold text-slate-950 dark:text-white">{target.label}</dt>
-              <dd className="mt-2 font-mono text-slate-800 dark:text-slate-300">{target.path}</dd>
+              <dd className="mt-2 break-words font-mono text-slate-800 dark:text-slate-300">{target.path}</dd>
             </div>
           ))}
         </dl>

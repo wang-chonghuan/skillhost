@@ -1,12 +1,8 @@
-import { ThemeToggle } from './ThemeToggle';
-
 type HeaderProps = {
   githubUrl: string;
   pypiUrl: string;
   copyState: string;
-  theme: 'light' | 'dark';
   onCopyDocs: () => void;
-  onToggleTheme: () => void;
 };
 
 function GitHubIcon() {
@@ -35,17 +31,17 @@ function CopyIcon() {
   );
 }
 
-export function Header({ githubUrl, pypiUrl, copyState, theme, onCopyDocs, onToggleTheme }: HeaderProps) {
+export function Header({ githubUrl, pypiUrl, copyState, onCopyDocs }: HeaderProps) {
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-slate-200/80 bg-white/80 backdrop-blur-xl dark:border-cyan-300/10 dark:bg-black/80">
-      <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 sm:px-6">
-        <a href="#top" className="flex items-center gap-3" aria-label="SkillHost home">
+      <div className="mx-auto flex h-16 w-full max-w-none items-center justify-between px-3 sm:px-4 lg:max-w-5xl lg:px-6">
+        <a href="#top" className="flex min-w-0 items-center gap-2 sm:gap-3" aria-label="SkillHost home">
           <span className="grid h-9 w-9 place-items-center rounded-xl bg-slate-950 text-sm font-bold text-white shadow-sm dark:bg-cyan-300 dark:text-slate-950">
             SH
           </span>
           <span className="text-base font-semibold tracking-tight text-slate-950 dark:text-white">SkillHost</span>
         </a>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
           <button
             type="button"
             onClick={onCopyDocs}
@@ -70,7 +66,6 @@ export function Header({ githubUrl, pypiUrl, copyState, theme, onCopyDocs, onTog
           >
             <PackageIcon />
           </a>
-          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
         </div>
       </div>
     </header>
