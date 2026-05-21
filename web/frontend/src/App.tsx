@@ -65,16 +65,6 @@ const safetyNotes = [
 
 const DOCS_TEXT = readmeText;
 
-type Theme = 'light' | 'dark';
-
-function getInitialTheme(): Theme {
-  if (typeof window === 'undefined') {
-    return 'dark';
-  }
-
-  return window.localStorage.getItem('theme') === 'light' ? 'light' : 'dark';
-}
-
 type InstallCommandsPanelProps = {
   copiedInstallCommand: string;
   onCopyInstallCommand: (command: string) => void;
@@ -102,8 +92,8 @@ function InstallCommandsPanel({ copiedInstallCommand, onCopyInstallCommand }: In
 
 function SkillhostDiagram() {
   return (
-    <figure className="overflow-hidden rounded-2xl border border-cyan-200/25 bg-slate-950 p-3 shadow-2xl shadow-cyan-950/20" aria-label="SkillHost directory diagram">
-      <svg viewBox="0 0 900 430" className="h-auto w-full" role="img" aria-labelledby="diagram-title diagram-desc">
+    <figure className="max-w-full overflow-hidden rounded-2xl border border-cyan-200/25 bg-slate-950 p-3 shadow-2xl shadow-cyan-950/20" aria-label="SkillHost directory diagram">
+      <svg viewBox="0 0 900 430" className="block h-auto w-full max-w-full" role="img" aria-labelledby="diagram-title diagram-desc">
         <title id="diagram-title">SkillHost basic mapping diagram</title>
         <desc id="diagram-desc">User and project skill directories connect to dot skillhost repository storage.</desc>
 
@@ -190,8 +180,8 @@ function SkillFlowDiagram() {
   ];
 
   return (
-    <figure className="overflow-hidden rounded-2xl border border-cyan-200/25 bg-slate-950 p-4 shadow-sm dark:border-cyan-300/10" aria-label="SkillHost skill distribution flow">
-      <svg viewBox="0 0 900 270" className="h-auto w-full" role="img" aria-labelledby="skill-flow-title skill-flow-desc">
+    <figure className="max-w-full overflow-hidden rounded-2xl border border-cyan-200/25 bg-slate-950 p-3 shadow-sm dark:border-cyan-300/10 sm:p-4" aria-label="SkillHost skill distribution flow">
+      <svg viewBox="0 0 900 270" className="block h-auto w-full max-w-full" role="img" aria-labelledby="skill-flow-title skill-flow-desc">
         <title id="skill-flow-title">SkillHost skill distribution flow</title>
         <desc id="skill-flow-desc">A skill repository or a skill collection repository flows through SkillHost into multiple agent skill directories.</desc>
         <defs>
@@ -275,7 +265,7 @@ function QuickDocs() {
         <div>
           <h3 className="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Skill flow</h3>
           <p className="mb-4 text-sm leading-6 text-slate-800 dark:text-slate-300">Put one skill or a whole collection in Git. SkillHost discovers each SKILL.md and links the skills into the agent directories you choose.</p>
-          <SkillFlowDiagram />
+          <SkillhostDiagram />
         </div>
         <div>
           <h3 className="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Safety notes</h3>
@@ -293,15 +283,13 @@ function QuickDocs() {
 }
 
 export default function App() {
-  const [theme, setTheme] = useState<Theme>(getInitialTheme);
   const [copyState, setCopyState] = useState('');
   const [copiedInstallCommand, setCopiedInstallCommand] = useState('');
 
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', theme === 'dark');
-    document.documentElement.style.colorScheme = theme;
-    window.localStorage.setItem('theme', theme);
-  }, [theme]);
+    document.documentElement.classList.remove('dark');
+    document.documentElement.style.colorScheme = 'light';
+  }, []);
 
   async function copyText(text: string, onSuccess: () => void, onUnavailable?: () => void) {
     if (!navigator.clipboard?.writeText) {
@@ -342,12 +330,10 @@ export default function App() {
         githubUrl={GITHUB_URL}
         pypiUrl={PYPI_URL}
         copyState={copyState}
-        theme={theme}
         onCopyDocs={copyDocs}
-        onToggleTheme={() => setTheme((current) => (current === 'dark' ? 'light' : 'dark'))}
       />
-      <main id="top" className="mx-auto flex max-w-5xl flex-col gap-6 px-4 pb-20 pt-28 sm:px-6 lg:pt-32">
-        <section className="rounded-[2rem] border border-slate-200 bg-white/82 p-6 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/[0.04] sm:p-10" aria-labelledby="hero-title">
+      <main id="top" className="mx-auto flex w-full max-w-none flex-col gap-6 px-0 pb-20 pt-24 lg:max-w-5xl lg:px-6 lg:pt-32">
+        <section className="w-full border-y border-slate-200 bg-white/82 p-5 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/[0.04] sm:p-6 lg:rounded-[2rem] lg:border lg:p-10" aria-labelledby="hero-title">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.22em] text-cyan-700 dark:text-cyan-300">skillhost.dev</p>
             <h1 id="hero-title" className="mt-5 max-w-4xl text-4xl font-semibold tracking-[-0.04em] text-slate-950 dark:text-white sm:text-6xl">
@@ -358,7 +344,7 @@ export default function App() {
             </div>
           </div>
           <div className="mt-8">
-            <SkillhostDiagram />
+            <SkillFlowDiagram />
           </div>
           <div className="mt-5">
             <InstallCommandsPanel copiedInstallCommand={copiedInstallCommand} onCopyInstallCommand={copyInstallCommand} />
