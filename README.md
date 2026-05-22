@@ -7,6 +7,10 @@ SkillHost installs Agent Skills from Git repositories into local agent skill dir
 
 Git is the source of truth. SkillHost clones or pulls skill repos, discovers `SKILL.md` files, and links the discovered skills into agents such as Codex and Claude Code. It does not execute code from skill repositories and does not overwrite unmanaged files.
 
+## What's new in 0.1.8
+
+SkillHost 0.1.8 adds per-agent skill visibility controls through `skillhost list --agent <name>`, persists hidden skills in config, keeps hidden skills hidden during later `update` and `relink`, and includes a `skillhost-skill` agent skill for guiding SkillHost usage.
+
 ## Typical path
 
 ```sh
