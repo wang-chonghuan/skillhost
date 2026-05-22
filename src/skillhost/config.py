@@ -30,6 +30,10 @@ def default_config() -> dict[str, Any]:
         "version": 1,
         "home": str(home),
         "agents": _default_agents(),
+        "hidden_skills": {
+            "user": {},
+            "projects": {},
+        },
         "user_repos": {},
         "projects": {},
     }
@@ -54,6 +58,7 @@ def _migrate_config(data: dict[str, Any]) -> dict[str, Any]:
     migrated["version"] = int(data.get("version", 1))
     migrated["home"] = str(skillhost_home())
     migrated["agents"] = data.get("agents", _default_agents())
+    migrated["hidden_skills"] = data.get("hidden_skills", {"user": {}, "projects": {}})
 
     for name, record in data.get("user_repos", {}).items():
         migrated["user_repos"][name] = _normalize_repo_record(record)
@@ -86,9 +91,37 @@ def _migrate_config(data: dict[str, Any]) -> dict[str, Any]:
     return migrated
 
 
+def _normalize_hidden_skills(data: Any) -> dict[str, Any]:
+    if not isinstance(data, dict):
+        data = {}
+    user = data.get("user", {})
+    projects = data.get("projects", {})
+    if not isinstance(user, dict):
+        user = {}
+    if not isinstance(projects, dict):
+        projects = {}
+
+    normalized_user = {
+        str(agent): sorted({str(name) for name in names})
+        for agent, names in user.items()
+        if isinstance(names, (list, tuple, set))
+    }
+    normalized_projects: dict[str, dict[str, list[str]]] = {}
+    for project, agents in projects.items():
+        if not isinstance(agents, dict):
+            continue
+        normalized_projects[str(project)] = {
+            str(agent): sorted({str(name) for name in names})
+            for agent, names in agents.items()
+            if isinstance(names, (list, tuple, set))
+        }
+    return {"user": normalized_user, "projects": normalized_projects}
+
+
 def _normalize_config(data: dict[str, Any]) -> dict[str, Any]:
     cfg = _migrate_config(data)
     cfg["home"] = str(skillhost_home())
+    cfg["hidden_skills"] = _normalize_hidden_skills(cfg.get("hidden_skills"))
     agents = cfg.setdefault("agents", {})
     for name, defaults in _default_agents().items():
         current = agents.setdefault(name, defaults)
@@ -147,6 +180,33 @@ def project_repos_path_from_config(project: str) -> Path:
 
 def get_registered_agents() -> dict[str, dict[str, Any]]:
     return load_config().get("agents", {})
+
+
+def get_hidden_skills(scope: str, project: str | None, agent: str) -> set[str]:
+    cfg = load_config()
+    hidden = cfg.get("hidden_skills", {})
+    if scope == "user":
+        return set(hidden.get("user", {}).get(agent, []))
+    if not project:
+        raise SkillhostError("project scope requires a project name")
+    return set(hidden.get("projects", {}).get(project, {}).get(agent, []))
+
+
+def set_hidden_skills(scope: str, project: str | None, agent: str, skill_names: set[str]) -> None:
+    cfg = load_config()
+    hidden = cfg.setdefault("hidden_skills", {"user": {}, "projects": {}})
+    if scope == "user":
+        agents = hidden.setdefault("user", {})
+    else:
+        if not project:
+            raise SkillhostError("project scope requires a project name")
+        agents = hidden.setdefault("projects", {}).setdefault(project, {})
+
+    if skill_names:
+        agents[agent] = sorted(skill_names)
+    else:
+        agents.pop(agent, None)
+    save_config(cfg)
 
 
 def register_agent(name: str, user_dir: str | None, project_dir: str | None = None) -> None:

@@ -61,7 +61,7 @@ skillhost relink [repo-name] [--project <name>] [--agent codex|claude|opencode|o
 skillhost unlink [repo-name] [--project <name>] [--agent codex|claude|opencode|openclaw|hermes] [--all]
 skillhost remove <repo-name> [--project <name>]
 skillhost clean
-skillhost list [--project <name>]
+skillhost list [--project <name>] [--agent codex|claude|opencode|openclaw|hermes] [--all]
 skillhost doctor [--project <name>]
 skillhost agents
 skillhost projects
@@ -76,7 +76,7 @@ Useful behavior:
 - `unlink` removes only SkillHost-managed symlinks recorded in `.skillhost-links.json`.
 - `remove` unlinks, deletes the local clone under `~/.skillhost`, and removes the repo from config.
 - `clean` removes broken SkillHost-managed symlinks and stale manifest entries.
-- `list` shows registered repos and discovered skills.
+- `list` shows skills visible to the selected agent, defaulting to Codex. In an interactive terminal, select skills to hide or show for that agent. `--all` shows registered repos and discovered skills.
 - `doctor` checks config, repos, duplicate skill names, targets, manifests, broken links, and missing sources.
 - `config` prints the config file path only.
 

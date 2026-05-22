@@ -18,6 +18,7 @@ from .linking import MANIFEST, link_skills, load_manifest, save_manifest, unlink
 from .projects import current_project_context
 
 AGENT_CHOICES = ["codex", "claude", "opencode", "openclaw", "hermes"]
+DEFAULT_LIST_AGENT = "codex"
 
 
 def _is_interactive() -> bool:
@@ -163,6 +164,113 @@ def _select_add_targets() -> list[str] | None:
     return _prompt_add_agents()
 
 
+def _parse_visible_skill_choice(value: str, skills: list[Skill], current_hidden: set[str]) -> set[str]:
+    value = value.strip().lower()
+    current_visible = {skill.name for skill in skills if skill.name not in current_hidden}
+    if not value:
+        return current_visible
+    all_tokens = {"all", "a"}
+    none_tokens = {"none", "n", "0"}
+    tokens = [part.strip() for part in value.replace(";", ",").split(",") if part.strip()]
+    if not tokens:
+        return current_visible
+    if any(token in all_tokens for token in tokens):
+        return {skill.name for skill in skills}
+    if any(token in none_tokens for token in tokens):
+        return set()
+
+    by_name = {skill.name.lower(): skill.name for skill in skills}
+    selected: set[str] = set()
+    for token in tokens:
+        if token.isdigit():
+            index = int(token)
+            if 1 <= index <= len(skills):
+                selected.add(skills[index - 1].name)
+            else:
+                raise SkillhostError(f"Invalid skill choice: {token}")
+        elif token in by_name:
+            selected.add(by_name[token])
+        else:
+            raise SkillhostError(f"Invalid skill choice: {token}")
+    return selected
+
+
+def _prompt_visible_skills_text(skills: list[Skill], agent_name: str, current_hidden: set[str]) -> set[str]:
+    print(f"Select skills visible to {_format_agent_label(agent_name)}:")
+    for index, skill in enumerate(skills, start=1):
+        mark = "[visible]" if skill.name not in current_hidden else "[hidden]"
+        print(f"  {index}. {skill.repo_name}/{skill.name} {mark}")
+    try:
+        value = input("Choose visible skills (comma-separated, Enter keeps current, 0 none, all): ")
+    except (EOFError, OSError):
+        return {skill.name for skill in skills if skill.name not in current_hidden}
+    return _parse_visible_skill_choice(value, skills, current_hidden)
+
+
+def _prompt_visible_skills_tui(skills: list[Skill], agent_name: str, current_hidden: set[str]) -> set[str]:
+    cursor = 0
+    selected = {skill.name for skill in skills if skill.name not in current_hidden}
+    line_count = 0
+
+    def render() -> None:
+        nonlocal line_count
+        if line_count:
+            sys.stdout.write(f"\x1b[{line_count}A")
+        lines = [f"\x1b[1;36mSelect skills visible to {_format_agent_label(agent_name)}:\x1b[0m"]
+        for index, skill in enumerate(skills):
+            active = index == cursor
+            pointer = "❯" if active else " "
+            mark = "◉" if skill.name in selected else "○"
+            color = "\x1b[1;32m" if active else "\x1b[37m"
+            lines.append(f"{color}{pointer} {mark} {skill.repo_name}/{skill.name}\x1b[0m")
+        lines.append("\x1b[2m↑/↓ move · Space show/hide · Enter confirm\x1b[0m")
+        for line in lines:
+            sys.stdout.write("\r\x1b[2K" + line + "\r\n")
+        sys.stdout.flush()
+        line_count = len(lines)
+
+    fd = sys.stdin.fileno()
+    old_settings = termios.tcgetattr(fd)
+    try:
+        tty.setraw(fd)
+        sys.stdout.write("\x1b[?25l")
+        while True:
+            render()
+            char = sys.stdin.read(1)
+            if char == "\x03":
+                raise KeyboardInterrupt
+            if char in {"\r", "\n"}:
+                break
+            if char == " ":
+                skill_name = skills[cursor].name
+                if skill_name in selected:
+                    selected.remove(skill_name)
+                else:
+                    selected.add(skill_name)
+            elif char == "\x1b":
+                seq = sys.stdin.read(2)
+                if seq == "[A":
+                    cursor = (cursor - 1) % len(skills)
+                elif seq == "[B":
+                    cursor = (cursor + 1) % len(skills)
+        sys.stdout.write("\r\x1b[?25h")
+        sys.stdout.flush()
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+        sys.stdout.write("\r\x1b[?25h")
+        sys.stdout.flush()
+    return selected
+
+
+def _prompt_visible_skills(skills: list[Skill], agent_name: str, current_hidden: set[str]) -> set[str]:
+    if not _is_interactive():
+        return _prompt_visible_skills_text(skills, agent_name, current_hidden)
+    try:
+        return _prompt_visible_skills_tui(skills, agent_name, current_hidden)
+    except (termios.error, OSError):
+        return _prompt_visible_skills_text(skills, agent_name, current_hidden)
+
+
 def _relink_add_targets(scope: str, project: str | None, repo_name: str, agent_names: list[str] | None) -> int:
     if agent_names is None:
         return _relink_selected(scope, project, repo_name, None)
@@ -228,6 +336,36 @@ def _targets(scope: str, project: str | None, agent_name: str | None) -> dict[st
     return {name: path for name, path in _target_entries(scope, project, agent_name)}
 
 
+def _hidden_targets(scope: str, project: str | None, targets: dict[str, Path]) -> dict[str, set[str]]:
+    return {name: config.get_hidden_skills(scope, project, name) for name in targets}
+
+
+def _target_for_agent(scope: str, project: str | None, agent_name: str) -> Path:
+    entries = _target_entries(scope, project, agent_name)
+    if not entries:
+        raise SkillhostError(f"Agent has no target for selected scope: {agent_name}")
+    return entries[0][1]
+
+
+def _visible_skill_names(skills: list[Skill], target: Path, scope: str, project: str | None) -> set[str]:
+    manifest = load_manifest(target)
+    visible: set[str] = set()
+    for skill in skills:
+        record = manifest.get("links", {}).get(skill.name)
+        if not record:
+            continue
+        if record.get("scope") != scope:
+            continue
+        if project is not None and record.get("project") != project:
+            continue
+        if record.get("repo") != skill.repo_name:
+            continue
+        dest = target / skill.name
+        if dest.exists():
+            visible.add(skill.name)
+    return visible
+
+
 def _discover_scope(scope: str, repo_dir: Path, project: str | None) -> list[Skill]:
     return discover_repos(repo_dir, scope, project)
 
@@ -264,6 +402,16 @@ def _print_skills(skills: list[Skill]) -> None:
         print(f"{skill.repo_name}\t{skill.name}\t{location}")
 
 
+def _print_agent_skills(skills: list[Skill], agent_name: str, visible_names: set[str]) -> None:
+    visible_skills = [skill for skill in skills if skill.name in visible_names]
+    if not visible_skills:
+        print(f"No skills visible for {_format_agent_label(agent_name)}.")
+        return
+    for skill in visible_skills:
+        location = f"project:{skill.project}" if skill.project else "user"
+        print(f"{skill.repo_name}\t{skill.name}\t{location}")
+
+
 def _doctor_target(target: Path) -> int:
     issues = 0
     manifest_path = target / MANIFEST
@@ -292,7 +440,14 @@ def _relink_selected(scope: str, project: str | None, repo_name: str | None, age
     if repo_name and repo_name not in names:
         raise SkillhostError(f"Repo not found in selected scope: {repo_name}")
     skills = _select_skills(_discover_scope(scope, base_dir, project), repo_name)
-    failures = link_skills(skills, _targets(scope, project, agent_name), scope, project=project)
+    targets = _targets(scope, project, agent_name)
+    failures = link_skills(
+        skills,
+        targets,
+        scope,
+        project=project,
+        hidden_skills=_hidden_targets(scope, project, targets),
+    )
     return USER_ERROR if failures else 0
 
 
@@ -550,7 +705,44 @@ def cmd_clean(_args: argparse.Namespace) -> int:
 
 def cmd_list(args: argparse.Namespace) -> int:
     scope, base_dir, project = _selected_scope(args.project)
-    _print_skills(_discover_scope(scope, base_dir, project))
+    skills = _discover_scope(scope, base_dir, project)
+    if args.all:
+        _print_skills(skills)
+        return 0
+    if not skills:
+        print("No skills found.")
+        return 0
+
+    agent_name = args.agent or os.environ.get("SKILLHOST_AGENT") or DEFAULT_LIST_AGENT
+    target = _target_for_agent(scope, project, agent_name)
+    visible_names = _visible_skill_names(skills, target, scope, project)
+    hidden_names = config.get_hidden_skills(scope, project, agent_name)
+    manageable_skills = [skill for skill in skills if skill.name in visible_names or skill.name in hidden_names]
+    if not manageable_skills:
+        print(f"No skills visible for {_format_agent_label(agent_name)}.")
+        return 0
+
+    if not _is_interactive():
+        _print_agent_skills(skills, agent_name, visible_names - hidden_names)
+        return 0
+
+    visible_selection = _prompt_visible_skills(manageable_skills, agent_name, hidden_names)
+    new_hidden = {skill.name for skill in manageable_skills if skill.name not in visible_selection}
+    if new_hidden == hidden_names:
+        return 0
+
+    config.set_hidden_skills(scope, project, agent_name, new_hidden)
+    targets = {agent_name: target}
+    link_skills(
+        manageable_skills,
+        targets,
+        scope,
+        project=project,
+        hidden_skills={agent_name: new_hidden},
+    )
+    hidden_count = len(new_hidden)
+    label = "skill" if hidden_count == 1 else "skills"
+    print(f"Hidden {hidden_count} {label} from {_format_agent_label(agent_name)}.")
     return 0
 
 
@@ -696,6 +888,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("list")
     p.add_argument("--project")
+    p.add_argument("--agent")
+    p.add_argument("--all", action="store_true")
     p.set_defaults(func=cmd_list)
 
     sub.add_parser("clean").set_defaults(func=cmd_clean)

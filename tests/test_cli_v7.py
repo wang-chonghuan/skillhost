@@ -171,6 +171,60 @@ def test_add_list_relink_unlink_remove_user_scope(isolated):
     assert "repo-user" not in config.load_config()["user_repos"]
 
 
+def test_list_prints_agent_visible_skills(isolated, capsys):
+    repo = make_repo(isolated, "repo-visible", "visible")
+    assert main(["add", str(repo), "--name", "repo-visible"]) == 0
+
+    assert main(["unlink", "repo-visible", "--agent", "claude"]) == 0
+
+    assert main(["list", "--agent", "codex"]) == 0
+    assert "repo-visible\tvisible\tuser" in capsys.readouterr().out
+
+    assert main(["list", "--agent", "claude"]) == 0
+    assert "No skills visible for Claude Code." in capsys.readouterr().out
+
+
+def test_list_interactive_hides_and_unhides_agent_skills(isolated, monkeypatch):
+    repo = make_repo(isolated, "repo-hide", "hide-me")
+    assert main(["add", str(repo), "--name", "repo-hide"]) == 0
+    target = isolated / "home" / ".agents" / "skills"
+    assert (target / "hide-me").is_symlink()
+
+    monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+    monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+    monkeypatch.setattr("skillhost.cli._prompt_visible_skills_tui", lambda _skills, _agent, _hidden: set())
+
+    assert main(["list", "--agent", "codex"]) == 0
+
+    assert config.get_hidden_skills("user", None, "codex") == {"hide-me"}
+    assert not (target / "hide-me").exists()
+    assert not (target / "hide-me").is_symlink()
+
+    assert main(["relink", "repo-hide", "--agent", "codex"]) == 0
+    assert not (target / "hide-me").exists()
+
+    monkeypatch.setattr("skillhost.cli._prompt_visible_skills_tui", lambda _skills, _agent, _hidden: {"hide-me"})
+
+    assert main(["list", "--agent", "codex"]) == 0
+
+    assert config.get_hidden_skills("user", None, "codex") == set()
+    assert (target / "hide-me").is_symlink()
+
+
+def test_list_interactive_does_not_print_plain_list_above_selector(isolated, monkeypatch, capsys):
+    repo = make_repo(isolated, "repo-selector-only", "selector-only")
+    assert main(["add", str(repo), "--name", "repo-selector-only"]) == 0
+    capsys.readouterr()
+
+    monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+    monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+    monkeypatch.setattr("skillhost.cli._prompt_visible_skills_tui", lambda _skills, _agent, _hidden: {"selector-only"})
+
+    assert main(["list", "--agent", "codex"]) == 0
+
+    out = capsys.readouterr().out
+    assert "repo-selector-only\tselector-only\tuser" not in out
+
 
 
 def test_remove_accepts_git_url_as_repo_name(isolated):

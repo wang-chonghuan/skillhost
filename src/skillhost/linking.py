@@ -61,6 +61,7 @@ def link_skills(
     project: str | None = None,
     dry_run: bool = False,
     target_kinds: dict[str, str] | None = None,
+    hidden_skills: dict[str, set[str]] | None = None,
 ) -> int:
     """Link skills to targets. Returns conflict/skip count."""
     duplicate_names = _duplicates(skills)
@@ -71,14 +72,31 @@ def link_skills(
     linkable = [s for s in skills if s.name not in duplicate_names]
 
     target_kinds = target_kinds or {}
+    hidden_skills = hidden_skills or {}
     for agent, target_dir in targets.items():
         target_kind = target_kinds.get(agent, "agent")
+        target_hidden = hidden_skills.get(agent, set())
         manifest = load_manifest(target_dir)
         changed = False
         for skill in linkable:
             if skill.scope != scope or (project is not None and skill.project != project):
                 continue
             dest = target_dir / skill.name
+            if skill.name in target_hidden:
+                existing = manifest["links"].get(skill.name)
+                if (
+                    existing
+                    and existing.get("scope") == scope
+                    and (project is None or existing.get("project") == project)
+                ):
+                    if dest.is_symlink():
+                        print(f"Hide {agent}:{skill.name}")
+                        if not dry_run:
+                            dest.unlink()
+                    if not dry_run:
+                        manifest["links"].pop(skill.name, None)
+                        changed = True
+                continue
             source = str(skill.source_path.resolve())
             existing = manifest["links"].get(skill.name)
             if dest.exists() or dest.is_symlink():
