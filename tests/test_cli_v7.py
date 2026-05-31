@@ -256,6 +256,44 @@ def test_add_cancel_during_target_prompt_leaves_no_state(isolated, monkeypatch):
     assert not list(paths.user_repos_dir().glob(".repo-cancel-*"))
 
 
+
+
+
+def test_remove_missing_registered_repo_cleans_config_without_crashing(isolated):
+    repo = make_repo(isolated, "repo-missing-remove", "ghost-skill")
+    assert main(["add", str(repo), "--name", "repo-missing-remove"]) == 0
+
+    shutil.rmtree(paths.user_repos_dir() / "repo-missing-remove")
+
+    assert main(["remove", "repo-missing-remove"]) == 0
+
+    assert "repo-missing-remove" not in config.load_config()["user_repos"]
+
+
+def test_list_all_shows_registered_repo_missing_from_disk(isolated, capsys):
+    repo = make_repo(isolated, "repo-missing-list", "ghost-skill")
+    assert main(["add", str(repo), "--name", "repo-missing-list"]) == 0
+    capsys.readouterr()
+
+    shutil.rmtree(paths.user_repos_dir() / "repo-missing-list")
+
+    assert main(["list", "--all"]) == 0
+
+    out = capsys.readouterr().out
+    assert "repo-missing-list	<missing>	user" in out
+
+
+def test_relink_missing_registered_repo_fails_with_clear_message(isolated, capsys):
+    repo = make_repo(isolated, "repo-missing-relink", "ghost-skill")
+    assert main(["add", str(repo), "--name", "repo-missing-relink"]) == 0
+    capsys.readouterr()
+
+    shutil.rmtree(paths.user_repos_dir() / "repo-missing-relink")
+
+    assert main(["relink", "repo-missing-relink"]) == 1
+
+    assert "Registered repo is missing from disk: repo-missing-relink" in capsys.readouterr().err
+
 def test_add_repo_with_no_skills_leaves_no_state(isolated, capsys):
     repo = isolated / "empty-repo"
     repo.mkdir()

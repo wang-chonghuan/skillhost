@@ -366,8 +366,34 @@ def _visible_skill_names(skills: list[Skill], target: Path, scope: str, project:
     return visible
 
 
+def _repo_base_dir(scope: str, project: str | None) -> Path:
+    return config.project_repos_path_from_config(project) if scope == "project" else config.user_repos_path_from_config()
+
+
 def _discover_scope(scope: str, repo_dir: Path, project: str | None) -> list[Skill]:
-    return discover_repos(repo_dir, scope, project)
+    skills = discover_repos(repo_dir, scope, project)
+    discovered_repo_names = {skill.repo_name for skill in skills}
+    for repo_name, record in _repo_records(scope, project).items():
+        if repo_name in discovered_repo_names:
+            continue
+        repo_path_value = record.get("path")
+        repo_path = Path(repo_path_value) if repo_path_value else _repo_base_dir(scope, project) / repo_name
+        if repo_path.exists():
+            repo_skills = discover_skills_in_repo(repo_path, repo_name, scope, project)
+            if repo_skills:
+                skills.extend(repo_skills)
+                continue
+        skills.append(
+            Skill(
+                name="<missing>",
+                source_path=repo_path.resolve(strict=False),
+                repo_name=repo_name,
+                scope=scope,
+                project=project,
+                description="registered repo missing from disk",
+            )
+        )
+    return sorted(skills, key=lambda skill: (skill.repo_name, skill.name))
 
 
 def _select_skills(skills: list[Skill], repo_name: str | None) -> list[Skill]:
@@ -435,11 +461,13 @@ def _doctor_target(target: Path) -> int:
 
 
 def _relink_selected(scope: str, project: str | None, repo_name: str | None, agent_name: str | None) -> int:
-    base_dir = config.project_repos_path_from_config(project) if scope == "project" else config.user_repos_path_from_config()
+    base_dir = _repo_base_dir(scope, project)
     names = _all_repo_names(scope, project)
     if repo_name and repo_name not in names:
         raise SkillhostError(f"Repo not found in selected scope: {repo_name}")
-    skills = _select_skills(_discover_scope(scope, base_dir, project), repo_name)
+    skills = [skill for skill in _select_skills(_discover_scope(scope, base_dir, project), repo_name) if skill.name != "<missing>"]
+    if repo_name and not skills:
+        raise SkillhostError(f"Registered repo is missing from disk: {repo_name}")
     targets = _targets(scope, project, agent_name)
     failures = link_skills(
         skills,
@@ -563,8 +591,12 @@ def cmd_update(args: argparse.Namespace) -> int:
     agent_names = _selected_agent_names(args.agent)
     if scope == "user":
         for name in names:
+            repo_record = _repo_records(scope, project).get(name, {})
+            repo_path = Path(repo_record.get("path", base_dir / name))
             _unlink_repo_links_for_agents(scope, project, name, agent_names)
-            pull_ff_only(base_dir / name)
+            if not repo_path.exists():
+                raise SkillhostError(f"Registered repo is missing from disk: {name}")
+            pull_ff_only(repo_path)
             print(f"Updated {name}")
         return _relink_selected_agents(scope, project, args.repo_name, agent_names)
 
@@ -575,7 +607,11 @@ def cmd_update(args: argparse.Namespace) -> int:
     except SkillhostError:
         can_relink = False
     for name in names:
-        pull_ff_only(base_dir / name)
+        repo_record = _repo_records(scope, project).get(name, {})
+        repo_path = Path(repo_record.get("path", base_dir / name))
+        if not repo_path.exists():
+            raise SkillhostError(f"Registered repo is missing from disk: {name}")
+        pull_ff_only(repo_path)
         print(f"Updated {name}")
     if can_relink:
         try:
@@ -603,7 +639,10 @@ def cmd_remove(args: argparse.Namespace) -> int:
                 removed += unlink_scope({agent_name: target}, scope, project=project, repo_name=name)
         except SkillhostError:
             pass
-    shutil.rmtree(base_dir / name)
+    repo_record = _repo_records(scope, project).get(name, {})
+    repo_path = Path(repo_record.get("path", base_dir / name))
+    if repo_path.exists():
+        shutil.rmtree(repo_path)
     config.remove_repo(scope, name, project)
     print(f"Removed repo '{name}' and unlinked {removed} skill(s).")
     return 0
