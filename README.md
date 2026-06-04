@@ -5,11 +5,11 @@ GitHub: https://github.com/wang-chonghuan/skillhost
 
 SkillHost installs Agent Skills from Git repositories into local agent skill directories by creating safe, manifest-tracked symlinks.
 
-Git is the source of truth. SkillHost clones or pulls skill repos, discovers `SKILL.md` files, and links the discovered skills into agents such as Codex and Claude Code. It does not execute code from skill repositories and does not overwrite unmanaged files.
+Git is the source of truth. SkillHost clones or pulls skill repos, discovers `SKILL.md` files, and links the discovered skills into agents such as Codex, GitHub Copilot CLI, and Claude Code. It does not execute code from skill repositories and does not overwrite unmanaged files.
 
-## What's new in 0.1.8
+## What's new in 0.1.10
 
-SkillHost 0.1.8 adds per-agent skill visibility controls through `skillhost list --agent <name>`, persists hidden skills in config, keeps hidden skills hidden during later `update` and `relink`, and includes a `skillhost-skill` agent skill for guiding SkillHost usage.
+SkillHost 0.1.10 adds a built-in GitHub Copilot CLI target. User-level links go to `~/.copilot/skills`, project-level links go to `.github/skills`, and `--agent copilot` is available for targeted `list`, `update`, `relink`, and `unlink` operations.
 
 ## Typical path
 

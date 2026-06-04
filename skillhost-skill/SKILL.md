@@ -13,7 +13,7 @@ Read `references/skillhost-cli.md` when you need command syntax, target director
 
 Before changing user state, identify the scope: user-level by default, or project-level only when the user names a registered project or asks for project-local skills. Never invent missing repo URLs, repo names, project names, or target agents. Ask a short clarification if the command cannot be made safe from context.
 
-Prefer inspection before mutation. Useful first commands are `skillhost --version`, `skillhost agents`, `skillhost list --all`, `skillhost list --agent <agent>`, `skillhost projects`, `skillhost config`, and `skillhost doctor`.
+Prefer inspection before mutation. Useful first commands are `skillhost --version`, `skillhost agents`, `skillhost list --all`, `skillhost list --agent <agent>`, `skillhost projects`, `skillhost config`, and `skillhost doctor`. Built-in agent names include `codex`, `copilot`, `claude`, `opencode`, `openclaw`, and `hermes`.
 
 Treat these as destructive or potentially surprising and require explicit user intent: `skillhost remove`, `skillhost unlink --all`, `skillhost unregister`, deleting files under `~/.skillhost`, and editing `config.json` by hand. Prefer SkillHost commands over manual state edits.
 
