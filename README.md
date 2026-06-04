@@ -17,7 +17,7 @@ SkillHost 0.1.8 adds per-agent skill visibility controls through `skillhost list
 pipx install skillhost
 
 skillhost add git@github.com:org/company-skills.git
-# choose Codex, Claude Code, OpenCode, OpenClaw, Hermes Agent, or All
+# choose Codex, GitHub Copilot CLI, Claude Code, OpenCode, OpenClaw, Hermes Agent, or All
 
 skillhost update
 skillhost list
@@ -60,12 +60,12 @@ skillhost upgrade
 
 ```sh
 skillhost add <skill-git-repo> [--project <name>] [--name <repo-name>]
-skillhost update [repo-name] [--project <name>] [--agent codex|claude|opencode|openclaw|hermes] [--all]
-skillhost relink [repo-name] [--project <name>] [--agent codex|claude|opencode|openclaw|hermes] [--all]
-skillhost unlink [repo-name] [--project <name>] [--agent codex|claude|opencode|openclaw|hermes] [--all]
+skillhost update [repo-name] [--project <name>] [--agent codex|copilot|claude|opencode|openclaw|hermes] [--all]
+skillhost relink [repo-name] [--project <name>] [--agent codex|copilot|claude|opencode|openclaw|hermes] [--all]
+skillhost unlink [repo-name] [--project <name>] [--agent codex|copilot|claude|opencode|openclaw|hermes] [--all]
 skillhost remove <repo-name> [--project <name>]
 skillhost clean
-skillhost list [--project <name>] [--agent codex|claude|opencode|openclaw|hermes] [--all]
+skillhost list [--project <name>] [--agent codex|copilot|claude|opencode|openclaw|hermes] [--all]
 skillhost doctor [--project <name>]
 skillhost agents
 skillhost projects
@@ -92,6 +92,7 @@ Built-in targets:
 
 ```text
 codex    user: ~/.agents/skills           project: .agents/skills
+copilot  user: ~/.copilot/skills          project: .github/skills
 claude   user: ~/.claude/skills           project: .claude/skills
 opencode user: ~/.config/opencode/skills  project: .opencode/skills
 openclaw user: ~/.openclaw/skills         project: —

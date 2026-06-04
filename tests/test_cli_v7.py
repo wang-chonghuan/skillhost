@@ -153,6 +153,19 @@ def test_register_and_unregister_agent(isolated):
     assert "cursor" not in config.load_config()["agents"]
 
 
+def test_builtin_copilot_agent_defaults_to_copilot_skills(isolated):
+    cfg = config.load_config()
+
+    assert cfg["agents"]["copilot"]["user_dir"].endswith(".copilot/skills")
+    assert cfg["agents"]["copilot"]["project_dir"] == ".github/skills"
+
+    repo = make_repo(isolated, "repo-copilot", "copilot-skill")
+
+    assert main(["add", str(repo), "--name", "repo-copilot"]) == 0
+
+    assert (isolated / "home" / ".copilot" / "skills" / "copilot-skill").is_symlink()
+
+
 def test_add_list_relink_unlink_remove_user_scope(isolated):
     repo = make_repo(isolated, "repo-user", "alpha")
     assert main(["add", str(repo), "--name", "repo-user"]) == 0
@@ -338,7 +351,7 @@ def test_clean_removes_user_level_broken_symlinks_and_manifest_records(isolated,
     assert "to-clean" not in manifest["links"]
     out = capsys.readouterr().out
     assert "Remove broken symlink codex:to-clean" in out
-    assert "Cleaned 5 broken symlink(s)" in out
+    assert "Cleaned 6 broken symlink(s)" in out
 
 
 def test_clean_also_removes_current_repo_project_level_broken_symlinks(isolated, monkeypatch, capsys):
@@ -408,7 +421,7 @@ def test_update_interactive_relinks_selected_agents_only(isolated, monkeypatch):
 
     monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
     monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
-    monkeypatch.setattr("builtins.input", lambda _prompt: "1,3")
+    monkeypatch.setattr("builtins.input", lambda _prompt: "1,4")
 
     assert main(["update", "repo-update-selected"]) == 0
 
@@ -423,7 +436,7 @@ def test_update_interactive_relinks_selected_agents_only(isolated, monkeypatch):
 def test_add_interactive_links_selected_agents(isolated, monkeypatch):
     monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
     monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
-    monkeypatch.setattr("builtins.input", lambda _prompt: "1,3")
+    monkeypatch.setattr("builtins.input", lambda _prompt: "1,4")
     repo = make_repo(isolated, "repo-selected", "selected")
 
     assert main(["add", str(repo), "--name", "repo-selected"]) == 0
@@ -447,6 +460,7 @@ def test_add_interactive_all_choice_links_all_agents(isolated, monkeypatch):
     assert (isolated / "home" / ".agents" / "skills" / "allskill").is_symlink()
     assert (isolated / "home" / ".claude" / "skills" / "allskill").is_symlink()
     assert (isolated / "home" / ".config" / "opencode" / "skills" / "allskill").is_symlink()
+    assert (isolated / "home" / ".copilot" / "skills" / "allskill").is_symlink()
     assert (isolated / "home" / ".openclaw" / "skills" / "allskill").is_symlink()
     assert (isolated / "home" / ".hermes" / "skills" / "allskill").is_symlink()
 
@@ -461,7 +475,7 @@ def test_relink_interactive_uses_add_target_selector(isolated, monkeypatch):
 
     monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
     monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
-    monkeypatch.setattr("builtins.input", lambda _prompt: "2")
+    monkeypatch.setattr("builtins.input", lambda _prompt: "3")
     monkeypatch.setattr("skillhost.cli._prompt_add_agents_tui", lambda: _prompt_add_agents_text())
 
     assert main(["relink", "repo-relink-selected"]) == 0
@@ -485,6 +499,7 @@ def test_project_relink_skips_user_only_agents(isolated, monkeypatch):
 
     assert main(["add", str(skill_repo), "--project", "proj-user-only", "--name", "proj-skills"]) == 0
 
+    assert not (project_repo / ".github" / "skills" / "helper").exists()
     assert not (project_repo / ".openclaw" / "skills" / "helper").exists()
     assert not (project_repo / ".hermes" / "skills" / "helper").exists()
 

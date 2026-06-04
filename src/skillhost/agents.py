@@ -19,6 +19,7 @@ def _default_agent_map() -> dict[str, Agent]:
     home = Path.home()
     return {
         "codex": Agent("codex", home / ".agents" / "skills", Path(".agents") / "skills"),
+        "copilot": Agent("copilot", home / ".copilot" / "skills", Path(".github") / "skills"),
         "claude": Agent("claude", home / ".claude" / "skills", Path(".claude") / "skills"),
         "opencode": Agent(
             "opencode",
@@ -31,7 +32,7 @@ def _default_agent_map() -> dict[str, Agent]:
 
 
 AGENTS: dict[str, Agent] = _default_agent_map()
-DEFAULT_AGENT_NAMES = ["codex", "claude", "opencode", "openclaw", "hermes"]
+DEFAULT_AGENT_NAMES = ["codex", "copilot", "claude", "opencode", "openclaw", "hermes"]
 
 
 def get_agents(names: list[str] | None = None) -> list[Agent]:

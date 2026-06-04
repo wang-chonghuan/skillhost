@@ -26,6 +26,7 @@ PROJECT_SKILL_REPO = FIXTURES["project_skill_repo"]
 
 USER_AGENT_DIRS = {
     "codex": Path.home() / ".agents" / "skills",
+    "copilot": Path.home() / ".copilot" / "skills",
     "claude": Path.home() / ".claude" / "skills",
     "opencode": Path.home() / ".config" / "opencode" / "skills",
     "openclaw": Path.home() / ".openclaw" / "skills",
@@ -33,6 +34,7 @@ USER_AGENT_DIRS = {
 }
 PROJECT_AGENT_DIRS = {
     "codex": Path(".agents") / "skills",
+    "copilot": Path(".github") / "skills",
     "claude": Path(".claude") / "skills",
     "opencode": Path(".opencode") / "skills",
 }

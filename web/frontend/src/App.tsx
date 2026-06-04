@@ -33,12 +33,14 @@ const scenarioThreeUpdateCommands = `skillhost update --project my-project`;
 
 const userTargets = [
   { label: 'Codex', path: '~/.agents/skills' },
+  { label: 'GitHub Copilot CLI', path: '~/.copilot/skills' },
   { label: 'Claude Code', path: '~/.claude/skills' },
   { label: 'OpenCode', path: '~/.config/opencode/skills' },
 ];
 
 const projectTargets = [
   { label: 'Codex', path: '.agents/skills' },
+  { label: 'GitHub Copilot CLI', path: '.github/skills' },
   { label: 'Claude Code', path: '.claude/skills' },
   { label: 'OpenCode', path: '.opencode/skills' },
 ];
@@ -52,6 +54,7 @@ skillhost update --project <project>`;
 
 const skillFlowText = `Skill flow:
 skill repo -> SkillHost -> Codex ~/.agents/skills
+skill repo -> SkillHost -> GitHub Copilot CLI ~/.copilot/skills
 skill collection repo -> SkillHost -> Claude Code ~/.claude/skills
 skill collection repo -> SkillHost -> teammate Codex ~/.agents/skills
 

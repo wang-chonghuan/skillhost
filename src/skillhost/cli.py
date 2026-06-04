@@ -17,7 +17,7 @@ from .git_utils import clone_repo, derive_repo_name, get_repo_root, is_git_repo,
 from .linking import MANIFEST, link_skills, load_manifest, save_manifest, unlink_scope
 from .projects import current_project_context
 
-AGENT_CHOICES = ["codex", "claude", "opencode", "openclaw", "hermes"]
+AGENT_CHOICES = ["codex", "copilot", "claude", "opencode", "openclaw", "hermes"]
 DEFAULT_LIST_AGENT = "codex"
 
 
@@ -28,6 +28,7 @@ def _is_interactive() -> bool:
 def _format_agent_label(agent_name: str) -> str:
     labels = {
         "codex": "Codex",
+        "copilot": "GitHub Copilot CLI",
         "claude": "Claude Code",
         "opencode": "OpenCode",
         "openclaw": "OpenClaw",
@@ -55,6 +56,10 @@ def _parse_add_agent_choice(value: str) -> list[str] | None:
                 raise SkillhostError(f"Invalid add target choice: {token}")
         else:
             aliases = {
+                "github-copilot-cli": "copilot",
+                "githubcopilotcli": "copilot",
+                "copilot-cli": "copilot",
+                "copilotcli": "copilot",
                 "claude-code": "claude",
                 "claudecode": "claude",
                 "open-code": "opencode",

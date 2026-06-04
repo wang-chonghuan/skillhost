@@ -23,6 +23,7 @@ Built-in user targets:
 
 ```text
 codex    ~/.agents/skills
+copilot  ~/.copilot/skills
 claude   ~/.claude/skills
 opencode ~/.config/opencode/skills
 openclaw ~/.openclaw/skills
@@ -33,6 +34,7 @@ Built-in project targets:
 
 ```text
 codex    .agents/skills
+copilot  .github/skills
 claude   .claude/skills
 opencode .opencode/skills
 ```
@@ -58,7 +60,7 @@ skillhost agents
 skillhost projects
 skillhost config
 skillhost doctor [--project <name>]
-skillhost list [--agent codex|claude|opencode|openclaw|hermes]
+skillhost list [--agent codex|copilot|claude|opencode|openclaw|hermes]
 skillhost list --all
 ```
 
@@ -66,10 +68,10 @@ Manage user-level skill repos:
 
 ```sh
 skillhost add <skill-git-repo> [--name <repo-name>]
-skillhost update [repo-name] [--agent codex|claude|opencode|openclaw|hermes]
-skillhost relink [repo-name] [--agent codex|claude|opencode|openclaw|hermes]
-skillhost unlink <repo-name> [--agent codex|claude|opencode|openclaw|hermes]
-skillhost unlink --all [--agent codex|claude|opencode|openclaw|hermes]
+skillhost update [repo-name] [--agent codex|copilot|claude|opencode|openclaw|hermes]
+skillhost relink [repo-name] [--agent codex|copilot|claude|opencode|openclaw|hermes]
+skillhost unlink <repo-name> [--agent codex|copilot|claude|opencode|openclaw|hermes]
+skillhost unlink --all [--agent codex|copilot|claude|opencode|openclaw|hermes]
 skillhost remove <repo-name>
 skillhost clean
 ```
@@ -80,9 +82,9 @@ Manage project-level skill repos:
 skillhost register --project <name> --git <project-git-url>
 cd /path/to/project-checkout
 skillhost add <skill-git-repo> --project <name> [--name <repo-name>]
-skillhost update [repo-name] --project <name> [--agent codex|claude|opencode]
-skillhost relink [repo-name] --project <name> [--agent codex|claude|opencode]
-skillhost unlink <repo-name> --project <name> [--agent codex|claude|opencode]
+skillhost update [repo-name] --project <name> [--agent codex|copilot|claude|opencode]
+skillhost relink [repo-name] --project <name> [--agent codex|copilot|claude|opencode]
+skillhost unlink <repo-name> --project <name> [--agent codex|copilot|claude|opencode]
 skillhost remove <repo-name> --project <name>
 ```
 
@@ -97,7 +99,7 @@ skillhost relink
 
 ## Natural-Language Routing
 
-"Add this skill repo" means `skillhost add <git-url>`. If the user wants only specific agents and the CLI prompts, provide the menu choice interactively or pipe the numeric choice in a non-interactive run. Built-in target choices are ordered Codex, Claude Code, OpenCode, OpenClaw, Hermes Agent, All.
+"Add this skill repo" means `skillhost add <git-url>`. If the user wants only specific agents and the CLI prompts, provide the menu choice interactively or pipe the numeric choice in a non-interactive run. Built-in target choices are ordered Codex, GitHub Copilot CLI, Claude Code, OpenCode, OpenClaw, Hermes Agent, All.
 
 "Update", "sync", or "pull skills" means `skillhost update`, optionally with a repo name, project, or agent. Update removes stale SkillHost-managed links for selected targets, runs `git pull --ff-only`, and relinks.
 
